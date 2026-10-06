@@ -122,11 +122,18 @@ html.indet,html.indet body{height:100%;overflow:hidden}
 .mk.rvm i{left:-8px;top:-8px;width:16px;height:16px;background:#fff;border:4px solid var(--rv);box-shadow:0 2px 6px rgba(0,0,0,.3)}
 
 /* 아래 버튼 줄 */
-.dbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.dbar button,.dbar a{min-height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.8125rem;font-weight:700;color:var(--ink);text-decoration:none;text-align:center;padding:4px 2px;line-height:1.25}
+.dbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.dbar button,.dbar a{min-height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.75rem;font-weight:700;color:var(--ink);text-decoration:none;text-align:center;padding:4px 2px;line-height:1.25}
 .dbar button:active,.dbar a:active{background:#EEF1F4}
 .dbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
 .dbar .hot{color:var(--acc)}
+.dbar .fire{color:#B4441B}
+.unit{border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:10px}
+.unit .n{font-weight:700}
+.unit .st{font-size:.875rem;color:var(--ink2);margin-top:2px}
+.unit .ph{margin-top:9px}
+.unit .ph .btn{width:100%;min-height:46px;white-space:nowrap}
+.unit .ph .small{display:block;margin-top:4px}
 
 /* 아래에서 올라오는 창 */
 .sheet{position:fixed;inset:0;z-index:50}
@@ -236,8 +243,9 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     </div>
   </div>
   <nav class="dbar">
-    <button id="bInfo"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>사고정보·보고</button>
-    <button id="bBiz" class="hot"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>사업장 찾기</button>
+    <button id="bInfo"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>사고정보</button>
+    <button id="bBiz" class="hot"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>사업장</button>
+    <button id="bFire" class="fire"><svg viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.8 7-6.8 0-3.5-2.4-5.6-4-7.7-.6 1.9-1.6 3-3 3.5.5-3.3-.7-6.3-3.5-8-.3 3.5-4.5 6.6-4.5 12.2C4 19.2 8 22 12 22z"/></svg>소방</button>
     <a id="lKakao" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>카카오맵</a>
     <a id="lNaver"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>네이버지도</a>
   </nav>
@@ -252,6 +260,11 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
 <div class="sheet" id="shBiz" hidden role="dialog" aria-label="사업장 찾기">
   <div class="shbg" data-back></div>
   <div class="shcard"><div class="shh"><h2>사업장 찾기</h2><button class="ib" data-back>닫기</button></div><div id="bizBody"></div></div>
+</div>
+<!-- 관할 소방 -->
+<div class="sheet" id="shFire" hidden role="dialog" aria-label="관할 소방">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>관할 소방</h2><button class="ib" data-back>닫기</button></div><div id="fireBody"></div></div>
 </div>
 <!-- 설정 -->
 <div class="sheet" id="shSet" hidden role="dialog" aria-label="설정">
@@ -438,6 +451,294 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
 // ===== PARSER-END =====
 </script>
 
+<script id="fire">
+// ===== FIRE-START: 119안전센터 관할표(공식 자료) + 관할 찾기 =====
+// 출처: 대구 = 대구소방안전본부 누리집 '119안전센터 등 명칭·위치 및 관할구역'(최근자료수정일 2025.12.31)
+//       경북 = 「경상북도 행정기구 설치 조례 시행규칙」 [별표 2] (2026. 8. 3. 개정)
+// 규칙 형식: "시군구:동,동,...;ri=리,리;xri=리,리;lot=시작-끝;xlot=시작-끝;xd=읍면,읍면;amb"
+//   * = 시군구 전체, ri = 그 리만, xri = 그 리 제외, lot/xlot = 지번 본번 범위, amb = 원문상 경계가 불분명
+// 단위 종류: C 안전센터, J 지역대, O 출장소
+(function (root) {
+  'use strict';
+  var SRC = { '대구': '대구소방안전본부 관할구역 안내(2025.12.31)', '경북': '경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)' };
+  var D = [
+    // ── 대구 ──
+    ['대구', '대구중부소방서', '남산119안전센터', 'C', ['중구:봉산동,덕산동,동성로3가,계산동1가,계산동2가,남산2동,남산3동,남산4동']],
+    ['대구', '대구중부소방서', '서문로119안전센터', 'C', ['중구:종로1가동,종로2가동,동일동,전동,인교동,서성로1가동,서성로2가동,서야동,수창동,도원동,대안동,상서동,하서동,수동,장관동,향촌동,북성로1가동,북성로2가동,포정동,서문로1가동,서문로2가동,서내동,북내동,태평로2가동,태평로3가동,남성로동,남일동,사일동,동성로1가동,동성로2가동,용덕동,화전동']],
+    ['대구', '대구중부소방서', '봉덕119안전센터', 'C', ['남구:이천동,봉덕동']],
+    ['대구', '대구중부소방서', '대신119안전센터', 'C', ['중구:시장북로,동산동,대신동,달성동']],
+    ['대구', '대구중부소방서', '삼덕119안전센터', 'C', ['중구:동인1가동,동인2가동,동인3가동,동인4가동,삼덕1가동,삼덕2가동,삼덕3가동,태평로1가동,대봉1동,동문동,문화동,상덕동,교동,완전동,공평동']],
+    ['대구', '대구중부소방서', '교동119지역대', 'J', ['중구:동문동,문화동,상덕동,교동,완전동,공평동']],
+    ['대구', '대구중부소방서', '명덕119안전센터', 'C', ['중구:남산1동,대봉2동', '남구:대명2동,대명3동']],
+    ['대구', '대구중부소방서', '성명119안전센터', 'C', ['남구:대명1동,대명4동,대명5동,대명6동,대명9동,대명10동,대명11동']],
+    ['대구', '대구중부소방서', '대명119지역대', 'J', ['남구:대명1동,대명5동,대명9동']],
+    ['대구', '대구동부소방서', '신천119안전센터', 'C', ['동구:신천동,효목동,신암동']],
+    ['대구', '대구동부소방서', '동촌119안전센터', 'C', ['동구:방촌동,입석동,검사동,신평동,부동,둔산동,용계동']],
+    ['대구', '대구동부소방서', '안심119안전센터', 'C', ['동구:서호동,동호동,각산동,신서동,동내동,괴전동,금강동,대림동,사복동,숙천동,내곡동']],
+    ['대구', '대구동부소방서', '불로119안전센터', 'C', ['동구:불로동,지저동,봉무동,도동,평광동']],
+    ['대구', '대구동부소방서', '공산119안전센터', 'C', ['동구:능성동,진인동,도학동,백안동,미곡동,용수동,신무동,미대동,내동,지묘동,덕곡동,송정동,신용동,중대동']],
+    ['대구', '대구동부소방서', '율하119안전센터', 'C', ['동구:신기동,율하동,상매동,매여동,율암동']],
+    ['대구', '대구서부소방서', '평리119안전센터', 'C', ['서구:평리1동,평리3동,평리5동,평리6동,비산5동,비산7동']],
+    ['대구', '대구서부소방서', '이현119안전센터', 'C', ['서구:이현동,상리동,중리동']],
+    ['대구', '대구서부소방서', '내당119안전센터', 'C', ['서구:내당동,평리2동,평리4동']],
+    ['대구', '대구서부소방서', '비산119안전센터', 'C', ['서구:비산1동,비산2동,비산3동,비산4동,비산6동,원대동']],
+    ['대구', '대구북부소방서', '칠성119안전센터', 'C', ['북구:고성동,칠성동']],
+    ['대구', '대구북부소방서', '칠성119지역대', 'J', ['북구:칠성동']],
+    ['대구', '대구북부소방서', '침산119안전센터', 'C', ['북구:침산동,산격1동']],
+    ['대구', '대구북부소방서', '노원119안전센터', 'C', ['북구:노원동']],
+    ['대구', '대구북부소방서', '대현119안전센터', 'C', ['북구:산격3동,산격4동,대현동']],
+    ['대구', '대구북부소방서', '산격119안전센터', 'C', ['북구:산격2동,검단동,복현동']],
+    ['대구', '대구북부소방서', '복현119지역대', 'J', ['북구:복현동']],
+    ['대구', '대구수성소방서', '범물119안전센터', 'C', ['수성구:범물동,두산동,삼덕동,지산2동', '수성구:지산1동;xlot=910-1073']],
+    ['대구', '대구수성소방서', '만촌119안전센터', 'C', ['수성구:만촌3동,연호동,이천동,고모동,범어4동']],
+    ['대구', '대구수성소방서', '황금119안전센터', 'C', ['수성구:황금동,중동', '수성구:지산1동;lot=910-1073']],
+    ['대구', '대구수성소방서', '상동119안전센터', 'C', ['수성구:상동,파동']],
+    ['대구', '대구수성소방서', '수성119안전센터', 'C', ['수성구:수성동1가,수성동2가,수성동3가,수성동4가,범어1동,범어3동']],
+    ['대구', '대구수성소방서', '무열로119안전센터', 'C', ['수성구:범어2동,만촌1동,만촌2동']],
+    ['대구', '대구수성소방서', '고산119안전센터', 'C', ['수성구:시지동,매호동,성동,사월동,신매동,욱수동,노변동,가천동,대흥동']],
+    ['대구', '대구수성소방서', '가창119안전센터', 'C', ['달성군:가창면']],
+    ['대구', '대구달서소방서', '월성119안전센터', 'C', ['달서구:월성동,본동']],
+    ['대구', '대구달서소방서', '본리119안전센터', 'C', ['달서구:본리동,두류동,성당동']],
+    ['대구', '대구달서소방서', '송현119안전센터', 'C', ['달서구:송현동,상인동']],
+    ['대구', '대구달서소방서', '도원119안전센터', 'C', ['달서구:도원동,진천동,대곡동,유천동']],
+    ['대구', '대구달서소방서', '죽전119안전센터', 'C', ['달서구:죽전동,장기동,용산동,감삼동']],
+    ['대구', '대구달성소방서', '현풍119안전센터', 'C', ['달성군:현풍읍,유가읍']],
+    ['대구', '대구달성소방서', '논공119안전센터', 'C', ['달성군:논공읍;xri=노이리,금포리,삼리리,위천리']],
+    ['대구', '대구달성소방서', '화원119안전센터', 'C', ['달성군:화원읍']],
+    ['대구', '대구달성소방서', '구지119안전센터', 'C', ['달성군:구지면']],
+    ['대구', '대구달성소방서', '옥포119안전센터', 'C', ['달성군:옥포읍', '달성군:논공읍;ri=노이리,금포리,삼리리,위천리']],
+    ['대구', '대구강서소방서', '다사119안전센터', 'C', ['달성군:다사읍;ri=죽곡리,서재리,세천리,방천리', '달서구:호산동,호림동,파호동']],
+    ['대구', '대구강서소방서', '성서119안전센터', 'C', ['달서구:이곡동,갈산동,신당동']],
+    ['대구', '대구강서소방서', '대천119안전센터', 'C', ['달서구:대천동,장동,월암동']],
+    ['대구', '대구강서소방서', '매곡119안전센터', 'C', ['달성군:다사읍;xri=죽곡리,세천리,서재리,방천리', '달성군:하빈면']],
+    ['대구', '대구강서소방서', '하빈119지역대', 'J', ['달성군:하빈면;xri=동곡리,봉촌리']],
+    ['대구', '대구강북소방서', '구암119안전센터', 'C', ['북구:구암동,동천동,국우동,도남동']],
+    ['대구', '대구강북소방서', '읍내119안전센터', 'C', ['북구:읍내동,동호동,학정동,관음동']],
+    ['대구', '대구강북소방서', '태전119안전센터', 'C', ['북구:태전동,노곡동,매천동']],
+    ['대구', '대구강북소방서', '무태119안전센터', 'C', ['북구:조야동,동변동,서변동,연경동']],
+    ['대구', '대구강북소방서', '금호119안전센터', 'C', ['북구:금호동,팔달동,사수동']],
+    ['대구', '대구강북소방서', '군위119출장소', 'O', ['군위군:*']],
+    ['대구', '대구강북소방서', '군위119안전센터', 'C', ['군위군:군위읍,소보면,효령면']],
+    ['대구', '대구강북소방서', '효령119지역대', 'J', ['군위군:효령면']],
+    ['대구', '대구강북소방서', '의흥119안전센터', 'C', ['군위군:의흥면,우보면,삼국유사면,산성면,부계면']],
+    ['대구', '대구강북소방서', '부계119지역대', 'J', ['군위군:부계면']],
+    // ── 경북(별표 2) ──
+    ['경북', '포항북부소방서', '덕산119안전센터', 'C', ['포항시 북구:대흥동,신흥동,남빈동,상원동,여천동,중앙동,덕산동,덕수동,동빈로1가,동빈로2가,동빈1가,동빈2가,용흥동,죽도동,득량동,학잠동']],
+    ['경북', '포항북부소방서', '두호119안전센터', 'C', ['포항시 북구:두호동,우현동,창포동,항구동,학산동,대신동']],
+    ['경북', '포항북부소방서', '흥해119안전센터', 'C', ['포항시 북구:흥해읍']],
+    ['경북', '포항북부소방서', '청하119안전센터', 'C', ['포항시 북구:신광면,청하면,송라면']],
+    ['경북', '포항북부소방서', '장량119안전센터', 'C', ['포항시 북구:장성동,양덕동,환호동,여남동']],
+    ['경북', '포항북부소방서', '기계119안전센터', 'C', ['포항시 북구:기계면,기북면,죽장면']],
+    ['경북', '포항남부소방서', '일월119안전센터', 'C', ['포항시 남구:청림동,일월동,인덕동,동촌동,송정동,송내동,동해면']],
+    ['경북', '포항남부소방서', '제철119안전센터', 'C', ['포항시 남구:괴동동,장흥동,호동,대송면']],
+    ['경북', '포항남부소방서', '해도119안전센터', 'C', ['포항시 남구:상도동,해도동,송도동,대도동']],
+    ['경북', '포항남부소방서', '효자119안전센터', 'C', ['포항시 남구:효자동,지곡동,대잠동,이동']],
+    ['경북', '포항남부소방서', '구룡포119안전센터', 'C', ['포항시 남구:구룡포읍,호미곶면']],
+    ['경북', '포항남부소방서', '오천119안전센터', 'C', ['포항시 남구:오천읍,장기면']],
+    ['경북', '포항남부소방서', '장기119지역대', 'J', ['포항시 남구:장기면']],
+    ['경북', '포항남부소방서', '연일119안전센터', 'C', ['포항시 남구:연일읍']],
+    ['경북', '포항남부소방서', '울릉119안전센터', 'C', ['울릉군:*']],
+    ['경북', '포항남부소방서', '북면119지역대', 'J', ['울릉군:북면,서면']],
+    ['경북', '경주소방서', '황오119안전센터', 'C', ['경주시:황오동,성동동,동천동,구황동,배반동,인왕동,교동,동방동,남산동,내남면']],
+    ['경북', '경주소방서', '내남119지역대', 'J', ['경주시:내남면']],
+    ['경북', '경주소방서', '동부119안전센터', 'C', ['경주시:동부동,서부동,북부동,석장동,노동동,노서동,성건동,사정동,탑동,충효동,서악동,효현동,광명동,황남동,율동,배동']],
+    ['경북', '경주소방서', '보문119안전센터', 'C', ['경주시:천군동,암곡동,손곡동,북군동,황용동,덕동,보문동,신평동,천북면']],
+    ['경북', '경주소방서', '불국사119안전센터', 'C', ['경주시:진현동,마동,하동,구정동,조양동,도지동,시래동,서동,평동']],
+    ['경북', '경주소방서', '용황119안전센터', 'C', ['경주시:용강동,황성동,현곡면']],
+    ['경북', '경주소방서', '안강119안전센터', 'C', ['경주시:안강읍,강동면']],
+    ['경북', '경주소방서', '양동119지역대', 'J', ['경주시:강동면;ri=양동리']],
+    ['경북', '경주소방서', '외동119안전센터', 'C', ['경주시:외동읍']],
+    ['경북', '경주소방서', '감포119안전센터', 'C', ['경주시:감포읍,문무대왕면,양남면']],
+    ['경북', '경주소방서', '양남119지역대', 'J', ['경주시:양남면']],
+    ['경북', '경주소방서', '문무대왕119지역대', 'J', ['경주시:문무대왕면']],
+    ['경북', '경주소방서', '건천119안전센터', 'C', ['경주시:건천읍,산내면,서면']],
+    ['경북', '경주소방서', '서면119지역대', 'J', ['경주시:서면']],
+    ['경북', '김천소방서', '양금119안전센터', 'C', ['김천시:감호동,용두동,모암동,성내동,평화동,남산동,황금동,지좌동,덕곡동,양천동,감천면']],
+    ['경북', '김천소방서', '다수119안전센터', 'C', ['김천시:부곡동,다수동,백옥동,교동,삼락동,문당동,대항면,봉산면']],
+    ['경북', '김천소방서', '대광119안전센터', 'C', ['김천시:신음동,대광동,응명동,어모면,개령면']],
+    ['경북', '김천소방서', '지례119안전센터', 'C', ['김천시:조마면,구성면,지례면,부항면,대덕면,증산면']],
+    ['경북', '김천소방서', '율곡119안전센터', 'C', ['김천시:율곡동,농소면']],
+    ['경북', '김천소방서', '아포119안전센터', 'C', ['김천시:아포읍,남면,감문면']],
+    ['경북', '안동소방서', '법흥119안전센터', 'C', ['안동시:강남동,안기동,평화동,태화동,서구동,명륜동,중구동,일직면,남후면']],
+    ['경북', '안동소방서', '일직119지역대', 'J', ['안동시:일직면,남후면']],
+    ['경북', '안동소방서', '용상119안전센터', 'C', ['안동시:용상동,성곡동,석동동,송천동,임동면,임하면,길안면,남선면']],
+    ['경북', '안동소방서', '길안119지역대', 'J', ['안동시:길안면']],
+    ['경북', '안동소방서', '풍산119안전센터', 'C', ['안동시:풍산읍,풍천면']],
+    ['경북', '안동소방서', '하회119지역대', 'J', ['안동시:풍천면;ri=하회리']],
+    ['경북', '안동소방서', '옥동119안전센터', 'C', ['안동시:옥동,송하동,서후면,북후면']],
+    ['경북', '안동소방서', '북후119지역대', 'J', ['안동시:북후면']],
+    ['경북', '안동소방서', '서후119지역대', 'J', ['안동시:서후면']],
+    ['경북', '안동소방서', '도산119안전센터', 'C', ['안동시:도산면,와룡면,예안면,녹전면']],
+    ['경북', '구미소방서', '공단119안전센터', 'C', ['구미시:공단동,신평동,비산동']],
+    ['경북', '구미소방서', '송정119안전센터', 'C', ['구미시:송정동,남통동,형곡동']],
+    ['경북', '구미소방서', '원평119안전센터', 'C', ['구미시:원평동,지산동,도량동', '구미시:양호동;amb']],
+    ['경북', '구미소방서', '봉곡119안전센터', 'C', ['구미시:봉곡동,부곡동,선기동,수점동']],
+    ['경북', '구미소방서', '인동119안전센터', 'C', ['구미시:인의동,황상동,신동,구평동,진평동,시미동,임수동']],
+    ['경북', '구미소방서', '선산119안전센터', 'C', ['구미시:선산읍,무을면,옥성면']],
+    ['경북', '구미소방서', '해평119안전센터', 'C', ['구미시:해평면,도개면,장천면', '구미시:산동읍;xri=봉산리']],
+    ['경북', '구미소방서', '상림119안전센터', 'C', ['구미시:상모동,사곡동,임은동,오태동,광평동']],
+    ['경북', '구미소방서', '옥계119안전센터', 'C', ['구미시:옥계동,구포동,금전동,거의동', '구미시:양호동;amb', '구미시:산동읍;ri=봉산리']],
+    ['경북', '구미소방서', '고아119안전센터', 'C', ['구미시:고아읍']],
+    ['경북', '영주소방서', '문수119안전센터', 'C', ['영주시:휴천동,조암동,적서동,문정동,문수면,평은면,이산면,가흥1동']],
+    ['경북', '영주소방서', '가흥119안전센터', 'C', ['영주시:상망동,하망동,영주1동,영주2동,가흥2동,장수면,안정면']],
+    ['경북', '영주소방서', '풍기119안전센터', 'C', ['영주시:풍기읍,봉현면,순흥면,단산면,부석면']],
+    ['경북', '영주소방서', '순흥119지역대', 'J', ['영주시:순흥면']],
+    ['경북', '영주소방서', '부석119지역대', 'J', ['영주시:부석면,단산면']],
+    ['경북', '영천소방서', '동부119안전센터', 'C', ['영천시:동부동,중앙동,서부동,화북면,화남면,자양면,임고면,고경면']],
+    ['경북', '영천소방서', '화남119지역대', 'J', ['영천시:화남면,화북면']],
+    ['경북', '영천소방서', '남부119안전센터', 'C', ['영천시:완산동,남부동,북안면']],
+    ['경북', '영천소방서', '북안119지역대', 'J', ['영천시:북안면']],
+    ['경북', '영천소방서', '금호119안전센터', 'C', ['영천시:금호읍,대창면']],
+    ['경북', '영천소방서', '신녕119안전센터', 'C', ['영천시:신녕면,화산면,청통면']],
+    ['경북', '영천소방서', '청통119지역대', 'J', ['영천시:청통면']],
+    ['경북', '상주소방서', '만산119안전센터', 'C', ['상주시:남원동,북문동,계림동,동문동,동성동,신흥동,사벌면,사벌국면,내서면,외서면']],
+    ['경북', '상주소방서', '함창119안전센터', 'C', ['상주시:함창읍,은척면,공검면,이안면']],
+    ['경북', '상주소방서', '은척119지역대', 'J', ['상주시:은척면']],
+    ['경북', '상주소방서', '낙동119안전센터', 'C', ['상주시:낙동면,중동면']],
+    ['경북', '상주소방서', '청리119안전센터', 'C', ['상주시:청리면,공성면,외남면']],
+    ['경북', '상주소방서', '화서119안전센터', 'C', ['상주시:화동면,화서면,화북면,화남면,모동면,모서면']],
+    ['경북', '상주소방서', '모서119지역대', 'J', ['상주시:모동면,모서면']],
+    ['경북', '상주소방서', '화북119지역대', 'J', ['상주시:화북면']],
+    ['경북', '문경소방서', '점촌119안전센터', 'C', ['문경시:점촌1동,점촌2동,점촌3동,영순면,호계면']],
+    ['경북', '문경소방서', '모전119안전센터', 'C', ['문경시:점촌4동,점촌5동']],
+    ['경북', '문경소방서', '가은119안전센터', 'C', ['문경시:가은읍,농암면']],
+    ['경북', '문경소방서', '문경119안전센터', 'C', ['문경시:문경읍,마성면']],
+    ['경북', '문경소방서', '산북119안전센터', 'C', ['문경시:산북면,산양면,동로면']],
+    ['경북', '문경소방서', '동로119지역대', 'J', ['문경시:동로면']],
+    ['경북', '경산소방서', '압량119안전센터', 'C', ['경산시:대정동,임당동,대평동,조영동,갑제동,대동,압량읍']],
+    ['경북', '경산소방서', '중앙119안전센터', 'C', ['경산시:삼남동,서상동,신교동,상방동,백천동,삼북동,중방동,남방동,내동,여천동,유곡동,신천동,점촌동,평산동,사동,삼풍동,계양동']],
+    ['경북', '경산소방서', '중산119안전센터', 'C', ['경산시:옥곡동,사정동,옥산동,중산동,정평동,남천면']],
+    ['경북', '경산소방서', '하양119안전센터', 'C', ['경산시:하양읍,와촌면']],
+    ['경북', '경산소방서', '진량119안전센터', 'C', ['경산시:진량읍']],
+    ['경북', '경산소방서', '자인119안전센터', 'C', ['경산시:자인면,남산면,용성면']],
+    ['경북', '의성소방서', '봉양119안전센터', 'C', ['의성군:봉양면,안평면,신평면,비안면,금성면,가음면,춘산면']],
+    ['경북', '의성소방서', '금성119지역대', 'J', ['의성군:춘산면,가음면,금성면']],
+    ['경북', '의성소방서', '의성119안전센터', 'C', ['의성군:의성읍,단촌면,점곡면,옥산면,사곡면']],
+    ['경북', '의성소방서', '점곡119지역대', 'J', ['의성군:옥산면,점곡면']],
+    ['경북', '의성소방서', '안계119안전센터', 'C', ['의성군:안계면,안사면,단밀면,단북면,다인면,구천면']],
+    ['경북', '의성소방서', '다인119지역대', 'J', ['의성군:다인면']],
+    ['경북', '청송소방서', '청송119안전센터', 'C', ['청송군:청송읍,주왕산면']],
+    ['경북', '청송소방서', '주왕산119지역대', 'J', ['청송군:주왕산면']],
+    ['경북', '청송소방서', '진보119안전센터', 'C', ['청송군:진보면,파천면']],
+    ['경북', '청송소방서', '안덕119안전센터', 'C', ['청송군:안덕면,현동면,현서면,부남면']],
+    ['경북', '청송소방서', '현서119지역대', 'J', ['청송군:현서면']],
+    ['경북', '영양소방서', '영양119안전센터', 'C', ['영양군:영양읍,일월면,수비면']],
+    ['경북', '영양소방서', '수비119지역대', 'J', ['영양군:수비면']],
+    ['경북', '영양소방서', '입암119안전센터', 'C', ['영양군:입암면,석보면,청기면']],
+    ['경북', '영덕소방서', '영덕119안전센터', 'C', ['영덕군:영덕읍,달산면,지품면']],
+    ['경북', '영덕소방서', '지품119지역대', 'J', ['영덕군:지품면']],
+    ['경북', '영덕소방서', '강구119안전센터', 'C', ['영덕군:강구면,남정면']],
+    ['경북', '영덕소방서', '영해119안전센터', 'C', ['영덕군:영해면,병곡면,창수면,축산면']],
+    ['경북', '청도소방서', '청도119안전센터', 'C', ['청도군:청도읍,화양읍']],
+    ['경북', '청도소방서', '화양119지역대', 'J', ['청도군:화양읍']],
+    ['경북', '청도소방서', '풍각119안전센터', 'C', ['청도군:각남면,각북면,풍각면,이서면']],
+    ['경북', '청도소방서', '금천119안전센터', 'C', ['청도군:금천면,운문면,매전면']],
+    ['경북', '고령소방서', '대가야119안전센터', 'C', ['고령군:*;xd=다산면,성산면']],
+    ['경북', '고령소방서', '개진119지역대', 'J', ['고령군:개진면,우곡면']],
+    ['경북', '고령소방서', '다산119안전센터', 'C', ['고령군:다산면,성산면']],
+    ['경북', '고령소방서', '성산119지역대', 'J', ['고령군:성산면']],
+    ['경북', '성주소방서', '성주119안전센터', 'C', ['성주군:성주읍,벽진면,초전면,월항면']],
+    ['경북', '성주소방서', '초전119지역대', 'J', ['성주군:벽진면,초전면']],
+    ['경북', '성주소방서', '가천119안전센터', 'C', ['성주군:수륜면,가천면,금수강산면,대가면']],
+    ['경북', '성주소방서', '선남119안전센터', 'C', ['성주군:선남면,용암면']],
+    ['경북', '칠곡소방서', '기산119안전센터', 'C', ['칠곡군:왜관읍;xri=금산리,금남리,삼청리,낙산리', '칠곡군:기산면']],
+    ['경북', '칠곡소방서', '왜관119안전센터', 'C', ['칠곡군:왜관읍;ri=금산리,금남리,삼청리,낙산리']],
+    ['경북', '칠곡소방서', '북삼119안전센터', 'C', ['칠곡군:북삼읍,약목면']],
+    ['경북', '칠곡소방서', '약목119지역대', 'J', ['칠곡군:약목면']],
+    ['경북', '칠곡소방서', '석적119안전센터', 'C', ['칠곡군:석적읍']],
+    ['경북', '칠곡소방서', '지천119안전센터', 'C', ['칠곡군:지천면']],
+    ['경북', '칠곡소방서', '동명119안전센터', 'C', ['칠곡군:동명면']],
+    ['경북', '칠곡소방서', '가산119안전센터', 'C', ['칠곡군:가산면']],
+    ['경북', '예천소방서', '예천119안전센터', 'C', ['예천군:예천읍,감천면,보문면']],
+    ['경북', '예천소방서', '용문119안전센터', 'C', ['예천군:용문면,효자면,은풍면,유천면']],
+    ['경북', '예천소방서', '지보119안전센터', 'C', ['예천군:지보면,풍양면,개포면,용궁면']],
+    ['경북', '예천소방서', '풍양119지역대', 'J', ['예천군:풍양면']],
+    ['경북', '예천소방서', '용궁119지역대', 'J', ['예천군:용궁면']],
+    ['경북', '예천소방서', '도청119안전센터', 'C', ['예천군:호명읍,호명면']],
+    ['경북', '봉화소방서', '봉화119안전센터', 'C', ['봉화군:봉화읍,물야면,상운면']],
+    ['경북', '봉화소방서', '춘양119안전센터', 'C', ['봉화군:춘양면,춘양읍,법전면,소천면,석포면']],
+    ['경북', '봉화소방서', '석포119지역대', 'J', ['봉화군:석포면']],
+    ['경북', '봉화소방서', '명호119안전센터', 'C', ['봉화군:명호면,재산면,봉성면']],
+    ['경북', '봉화소방서', '재산119지역대', 'J', ['봉화군:재산면']],
+    ['경북', '울진소방서', '울진119안전센터', 'C', ['울진군:울진읍,금강송면,근남면,매화면']],
+    ['경북', '울진소방서', '북면119안전센터', 'C', ['울진군:북면']],
+    ['경북', '울진소방서', '온정119안전센터', 'C', ['울진군:온정면']],
+    ['경북', '울진소방서', '죽변119안전센터', 'C', ['울진군:죽변면']],
+    ['경북', '울진소방서', '후포119안전센터', 'C', ['울진군:후포면,평해읍,기성면']],
+    ['경북', '울진소방서', '기성119지역대', 'J', ['울진군:기성면']]
+  ];
+
+  // 동 이름 맞추기: '동인1가동'(관할표)↔'동인동1가'(카카오), '남성로동'↔'남성로', 띄어쓰기 무시
+  function canon(s) {
+    s = String(s || '').replace(/\s+/g, '');
+    s = s.replace(/^(.+?)동(\d+)가$/, '$1$2가').replace(/(\d+)가동$/, '$1가').replace(/로동$/, '로');
+    return s;
+  }
+  function parseRule(str) {
+    var parts = str.split(';'), head = parts[0], i = head.indexOf(':');
+    var r = { g: head.slice(0, i), all: head.slice(i + 1) === '*', d: [] };
+    if (!r.all) r.d = head.slice(i + 1).split(',').map(canon);
+    parts.slice(1).forEach(function (p) {
+      var kv = p.split('='), k = kv[0], v = kv[1];
+      if (k === 'amb') r.amb = true;
+      else if (k === 'lot' || k === 'xlot') r[k] = v.split('-').map(Number);
+      else r[k] = v.split(',').map(canon);
+    });
+    return r;
+  }
+  var UNITS = D.map(function (x) { return { sido: x[0], station: x[1], name: x[2], type: x[3], rules: x[4].map(parseRule) }; });
+  var SIDO = { '대구광역시': '대구', '경상북도': '경북' };
+
+  // where = { r1:'대구광역시', r2:'중구', b:'동인동1가'(법정동·읍면), ri:'죽곡리', h:'동인동'(행정동), lot:950 }
+  // 법정동(b)으로 먼저 찾고, 하나도 없을 때만 행정동(h)으로 찾음
+  // (행정동 이름이 다른 법정동 이름과 같은 경우가 있어 둘을 동시에 보면 엉뚱한 센터가 섞임)
+  function find(where) {
+    var sido = SIDO[where.r1] || null;
+    if (!sido) return { sido: null, matches: [], stations: [] };
+    var b = canon(where.b), h = canon(where.h), ri = canon(where.ri);
+    function pass(key) {
+      var res = [], named = false;
+      UNITS.forEach(function (u) {
+        if (u.sido !== sido) return;
+        u.rules.forEach(function (r) {
+          if (r.g !== where.r2) return;
+          var hit = r.all ? !(r.xd && (r.xd.indexOf(b) >= 0 || r.xd.indexOf(h) >= 0)) : (!!key && r.d.indexOf(key) >= 0);
+          if (!hit) return;
+          if (r.ri && r.ri.indexOf(ri) < 0) return;
+          if (r.xri && r.xri.indexOf(ri) >= 0) return;
+          var lotEdge = false;
+          if (r.lot || r.xlot) {
+            if (where.lot == null) lotEdge = true;
+            else {
+              var rg = r.lot || r.xlot, inside = where.lot >= rg[0] && where.lot <= rg[1];
+              if (r.lot && !inside) return;
+              if (r.xlot && inside) return;
+              if (where.lot === rg[0] || where.lot === rg[1]) lotEdge = true;
+            }
+          }
+          if (!r.all) named = true;
+          if (!res.some(function (o) { return o.u === u; })) res.push({ u: u, amb: !!r.amb || lotEdge });
+        });
+      });
+      return { res: res, named: named };
+    }
+    var p1 = pass(b), out = p1.res;
+    if (!p1.named && h) { var p2 = pass(h); if (p2.named) out = p2.res; }
+    var order = { C: 0, O: 1, J: 2 };
+    out.sort(function (a, b2) { return order[a.u.type] - order[b2.u.type]; });
+    var centers = out.filter(function (o) { return o.u.type === 'C'; });
+    var stations = [];
+    (out.length ? out.map(function (o) { return o.u; }) : UNITS.filter(function (u) { return u.sido === sido && u.rules.some(function (r) { return r.g === where.r2; }); }))
+      .forEach(function (u) { if (stations.indexOf(u.station) < 0) stations.push(u.station); });
+    return { sido: sido, matches: out, boundary: centers.length > 1 || out.some(function (o) { return o.amb; }), stations: stations, src: SRC[sido] };
+  }
+
+  var F = { find: find, canon: canon, UNITS: UNITS, SRC: SRC };
+  if (typeof module !== 'undefined' && module.exports) module.exports = F; else root.FIRE = F;
+})(this);
+// ===== FIRE-END =====
+</script>
+
 <script>
 (function () {
   'use strict';
@@ -478,7 +779,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     $('foot').hidden = !!screen;
     $('hBack').hidden = screen !== 'sList';
     $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '119 사고현장 확인';
-    ['shInfo', 'shBiz', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
+    ['shInfo', 'shBiz', 'shFire', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
     document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
   }
   function open(id) {
@@ -614,7 +915,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
   }
 
   function openDet(x) {
-    current = x; loc = null; bizCache = null; fitDone = false; rvPos = null; accPos = null; kakaoErr = false;
+    current = x; loc = null; bizCache = null; fireCache = null; fitDone = false; rvPos = null; accPos = null; kakaoErr = false;
     if (accOv) { accOv.setMap(null); rvOv.setMap(null); line.setMap(null); }   // 이전 사고 표시가 남아 다른 사고로 오인되지 않게
     var my = ++runId;
     $('dAddr').textContent = shortAddr(x.addr.clean) || '사고위치 없음';
@@ -727,6 +1028,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
   function ps(fn) { return new Promise(function (r) { fn(function (res, st) { if (st === kakao.maps.services.Status.ERROR) kakaoErr = true; r(st === kakao.maps.services.Status.OK ? res : []); }); }); }
   function addrSearch(q) { return ps(function (cb) { geocoder.addressSearch(q, cb); }); }
   function kwSearch(q, opt) { return ps(function (cb) { places.keywordSearch(q, cb, opt || {}); }); }
+  function c2r(lat, lng) { return ps(function (cb) { geocoder.coord2RegionCode(lng, lat, cb); }); }
   function c2a(lat, lng) { return ps(function (cb) { geocoder.coord2Address(lng, lat, cb); }); }
 
   // 주소 → 좌표: ① 주소검색 → ② 장소검색 → ③ 번지 빼고 주소검색(동·리 중심, 정확도 낮음)
@@ -840,6 +1142,10 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     L.push('- 확인사업장: 🔵 확인 필요');
     L.push('- 사업장 연락처: 🔵 확인 필요');
     L.push('- 좌표: ' + (loc ? loc.lat.toFixed(6) + ', ' + loc.lng.toFixed(6) + (loc.precise ? '' : ' (🔵 위치 정확도 낮음)') : '🔵 확인 필요'));
+    if (fireCache && fireCache.res && fireCache.res.matches.length) {
+      var fm = fireCache.res.matches.filter(function (o) { return o.u.type === 'C'; })[0] || fireCache.res.matches[0];
+      L.push('- 관할 소방(관할표 기준): ' + fm.u.station + ' ' + fm.u.name + (fireCache.res.boundary ? ' (🔵 경계 지역 확인)' : ''));
+    }
     L.push('- 확인사항: 🔵 확인 결과 입력');
     return L.join('\n');
   }
@@ -943,6 +1249,89 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     });
   }
   $('bBiz').addEventListener('click', function () { renderBiz(); open('shBiz'); $('shBiz').querySelector('.shcard').scrollTop = 0; });
+  // ── 관할 소방: 공식 관할표로 관할 센터·소방서를 정하고, 그 이름으로 카카오에서 등록 번호를 찾음 ──
+  var fireCache = null;
+  var TYPE_NAME = { C: '안전센터', J: '지역대', O: '출장소' };
+  function lotOf(j) { var m = String(j || '').match(/(?:^|\s)(?:산\s*)?(\d+)(?:-\d+)?\s*$/); return m ? +m[1] : null; }
+  function fireWhere() {
+    return c2r(loc.lat, loc.lng).then(function (docs) {
+      var B = docs.filter(function (d) { return d.region_type === 'B'; })[0] || {}, H = docs.filter(function (d) { return d.region_type === 'H'; })[0] || {};
+      return { r1: B.region_1depth_name || H.region_1depth_name || '', r2: B.region_2depth_name || H.region_2depth_name || '', b: B.region_3depth_name || '', ri: B.region_4depth_name || '', h: H.region_3depth_name || '', lot: lotOf(loc.jibun) };
+    });
+  }
+  function nm(s) { return String(s || '').replace(/\s+/g, ''); }
+  // 기관 이름으로 카카오 장소를 찾음: 이름이 들어 있는 결과 중 사고지점에서 가까운 것
+  function placeFor(name, station) {
+    var center = new K.LatLng(loc.lat, loc.lng), core = nm(name).replace(/^대구(?=.+소방서$)/, '');
+    var qs = station && station !== name ? [station + ' ' + name, name] : [name];
+    var i = 0;
+    function next() {
+      if (i >= qs.length) return Promise.resolve(null);
+      var q = qs[i++];
+      return kwSearch(q, { location: center, radius: 20000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
+        var hit = r.filter(function (p) { return nm(p.place_name).indexOf(core) >= 0; })[0];
+        return hit || next();
+      });
+    }
+    return next();
+  }
+  function telBtn(p, label) {
+    if (!p) return '<span class="btn ghost" aria-disabled="true">카카오 지도에서 번호를 찾지 못함</span><span class="small">아래 \'직접 확인\'으로 검색하세요</span>';
+    var tel = (p.phone || '').replace(/[^\d-]/g, ''), d = Math.round(+p.distance || 0);
+    return (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' : '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>') +
+      '<span class="small">카카오 등록: ' + esc(p.place_name) + (d ? ' / 사고지점에서 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') : '') + '</span>';
+  }
+  function unitHTML(id, title, tags, sub) {
+    return '<div class="unit"><div class="n">' + esc(title) + ' ' + tags + '</div>' + (sub ? '<div class="st">' + esc(sub) + '</div>' : '') +
+      '<div class="ph" id="' + id + '"><span class="small"><span class="spin"></span>번호 찾는 중</span></div></div>';
+  }
+  function renderFire() {
+    var x = current, el = $('fireBody'); if (!x) return;
+    var foot = '<div class="sec"><p class="small">관할은 공식 관할표 기준입니다. 실제 출동한 센터는 관할과 다를 수 있습니다. 전화번호는 카카오 지도 등록 정보라 정확하지 않을 수 있습니다(🔵 확인 필요).<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
+    if (!getKey() || !places || !loc) {
+      el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키가 없어 관할을 찾을 수 없습니다.' : '사고 위치를 확인하지 못해 관할을 찾을 수 없습니다.') + '</div>' + foot;
+      return;
+    }
+    if (fireCache && fireCache.html) { el.innerHTML = fireCache.html; return; }
+    el.innerHTML = '<div class="empty" style="margin-top:14px"><span class="spin"></span>관할을 찾는 중</div>';
+    var my = runId;
+    fireWhere().then(function (where) {
+      if (my !== runId) return;
+      var res = FIRE.find(where), h = '', jobs = [], n = 0;
+      fireCache = { where: where, res: res };
+      var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
+      if (!res.sido) {
+        h += '<div class="note" style="margin-top:14px"><b>대구·경북 밖 지역</b>이라 관할표가 없습니다. 아래 가까운 안전센터를 참고하세요.</div>';
+      } else if (res.matches.length) {
+        h += '<div class="note" style="margin-top:14px">' + esc(place) + ' 관할' + (res.boundary ? ' <span class="tag amber">경계 지역·확인 필요</span>' : '') + '</div>';
+        res.matches.forEach(function (o) {
+          var id = 'fu' + (n++);
+          h += unitHTML(id, o.u.name, '<span class="tag ' + (o.u.type === 'C' ? 'red' : '') + '">' + TYPE_NAME[o.u.type] + '</span>' + (o.amb ? ' <span class="tag amber">경계</span>' : ''), o.u.station + ' 소속');
+          jobs.push([id, o.u.name, o.u.station]);
+        });
+      } else {
+        h += '<div class="note warn" style="margin-top:14px">관할표에서 <b>' + esc(place) + '</b>을(를) 찾지 못했습니다. 동 이름이 바뀌었거나 표기가 다를 수 있습니다. 시군구 기준 소방서만 표시합니다.</div>';
+      }
+      res.stations.forEach(function (st) {
+        var id = 'fs' + (n++);
+        h += unitHTML(id, st, '<span class="tag">소방서</span>', '');
+        jobs.push([id, st, null]);
+      });
+      h += '<div class="sec"><h2>가까운 119안전센터(거리순, 참고)</h2><div id="fireNear"><div class="empty"><span class="spin"></span>찾는 중</div></div></div>';
+      var q0 = res.matches[0] ? res.matches[0].u.name : (res.stations[0] || '119안전센터');
+      h += '<div class="sec"><h2>직접 확인</h2><div class="chips"><a class="btn line" href="' + esc(naverWeb(q0)) + '" data-naver="' + esc(q0) + '">네이버지도: ' + esc(q0) + '</a></div></div>' + foot;
+      el.innerHTML = h;
+      var center = new K.LatLng(loc.lat, loc.lng);
+      Promise.all(jobs.map(function (j) {
+        return placeFor(j[1], j[2]).then(function (p) { var b = $(j[0]); if (b && my === runId) b.innerHTML = telBtn(p); });
+      }).concat([kwSearch('119안전센터', { location: center, radius: 15000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
+        var b = $('fireNear'); if (!b || my !== runId) return;
+        b.innerHTML = r.length ? r.slice(0, 3).map(function (p) { return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + telBtn(p) + '</div></div>'; }).join('') : '<div class="empty">찾은 곳이 없습니다.</div>';
+      })])).then(function () { if (my === runId && fireCache) fireCache.html = $('fireBody').innerHTML; });
+    });
+  }
+  $('bFire').addEventListener('click', function () { renderFire(); open('shFire'); $('shFire').querySelector('.shcard').scrollTop = 0; });
+
 
   // ── 설정 ──
   function openSettings() {

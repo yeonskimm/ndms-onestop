@@ -1,0 +1,1020 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1E2935">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="사고현장">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>119 사고현장 확인</title>
+<style>
+:root{
+  --bg:#EDF0F3; --card:#FFFFFF; --ink:#17212D; --ink2:#4B5664; --ink3:#7B8592; --line:#D6DBE1;
+  --hdr:#1E2935; --hdrink:#F3F5F7; --hdrsub:#AEB8C4;
+  --acc:#D3361F; --rv:#1D6ED8; --near:#1C8048; --mid:#A86A0A; --far:#C02E1A;
+  --gut:16px; --tabh:64px;
+  color-scheme:light;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html{background:var(--bg);-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;font-size:1.0625rem;line-height:1.55;word-break:keep-all;overflow-wrap:anywhere;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none;padding:0}
+button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible{outline:3px solid var(--rv);outline-offset:2px}
+a{color:inherit}
+
+/* 머리 띠: 첫 화면은 앱 이름, 목록 화면은 ‹ 뒤로 */
+.hdr{position:sticky;top:0;z-index:30;background:var(--hdr);color:var(--hdrink);padding-top:env(safe-area-inset-top)}
+.hin{max-width:640px;margin:0 auto;height:56px;display:flex;align-items:center;gap:4px;padding:0 6px 0 var(--gut)}
+.hin h1{flex:1;margin:0;font-size:1.125rem;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hin .back{margin-left:-10px}
+.back{min-width:44px;height:44px;padding:0 10px;font-size:1rem;font-weight:600;color:inherit;border-radius:8px;white-space:nowrap}
+.back:active,.ib:active{background:rgba(255,255,255,.12)}
+.ib{min-width:44px;height:44px;padding:0 10px;border-radius:8px;font-size:.9375rem;font-weight:600;color:inherit;white-space:nowrap}
+
+main{flex:1 0 auto}
+.scr{max-width:640px;margin:0 auto;padding:16px var(--gut) calc(28px + env(safe-area-inset-bottom))}
+
+/* 첫 화면 */
+.lead{margin:2px 0 12px;color:var(--ink2);font-size:.9375rem}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 18px;border-radius:10px;font-weight:700;font-size:1rem;text-decoration:none}
+.btn.pri{background:var(--hdr);color:#fff}
+.btn.pri:active{background:#2C3B4B}
+.btn.ghost{background:transparent;color:var(--ink2);border:1px solid var(--line)}
+.btn.line{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.btn.line:active,.btn.ghost:active{background:#E2E6EB}
+.btn.big{width:100%;min-height:60px;font-size:1.125rem;background:var(--hdr);color:#fff}
+.btn.big:active{background:#2C3B4B}
+.btn[disabled]{opacity:.45}
+textarea#raw{display:block;width:100%;min-height:200px;margin-top:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card);font-size:1rem;line-height:1.5;resize:vertical}
+textarea#raw::placeholder{color:#A3ABB5}
+.row{display:flex;gap:10px;margin-top:10px}
+.row .btn{flex:1}
+.row .btn.ghost{flex:0 0 auto}
+.err{margin-top:12px;padding:12px 14px;border-radius:10px;background:#FBE9E6;color:#8A2414;font-size:.9375rem}
+.note{margin-top:14px;padding:12px 14px;border-radius:10px;background:var(--card);border:1px solid var(--line);font-size:.9375rem;color:var(--ink2)}
+.note b{color:var(--ink)}
+.note.warn{background:#FFF4E0;border-color:#F0D49A;color:#6B4708}
+.note .btn{margin-top:10px;min-height:42px}
+.recent{margin-top:14px}
+.recent h2,.sec h2{margin:0 0 6px;font-size:.875rem;font-weight:700;color:var(--ink3)}
+.foot{max-width:640px;margin:0 auto;padding:0 calc(var(--gut) + 2px) calc(20px + env(safe-area-inset-bottom));font-size:.8125rem;color:var(--ink3);line-height:1.6}
+
+/* 사고 카드(여러 건·최근) */
+.card{display:block;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+.card:active{background:#F4F6F8}
+.card .t{display:flex;gap:8px;align-items:baseline;font-size:.875rem;color:var(--ink2)}
+.card .t b{color:var(--ink);font-size:1rem}
+.card .a{margin-top:2px;font-weight:700}
+.card .c{margin-top:2px;color:var(--ink2);font-size:.9375rem;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:.75rem;font-weight:700;background:#E4E8ED;color:var(--ink2);vertical-align:1px}
+.tag.red{background:#FBE3DF;color:#9E2512}
+.tag.blue{background:#E1ECFB;color:#1653A6}
+.tag.green{background:#DFF2E6;color:#14653A}
+.tag.amber{background:#FBEFD5;color:#7A4D06}
+
+/* 현장 화면: 휴대폰 한 화면 고정 분할(페이지 스크롤 없음 → 지도·로드뷰 손가락 조작과 충돌 없음) */
+html.indet,html.indet body{height:100%;overflow:hidden}
+.det{position:fixed;inset:0;z-index:40;background:var(--hdr);display:flex;flex-direction:column;height:100%}
+.det>*{width:100%;max-width:640px;margin-left:auto;margin-right:auto}
+.dhdr{padding-top:env(safe-area-inset-top);color:var(--hdrink);display:flex;align-items:center;gap:2px;padding-left:4px;padding-right:6px;min-height:calc(54px + env(safe-area-inset-top))}
+.dadr{flex:1;min-width:0;padding:6px 4px;line-height:1.3}
+.dadr b{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:1.0625rem;line-height:1.3}
+.dadr span{display:block;font-size:.8125rem;color:var(--hdrsub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dline{color:#D5DCE4;font-size:.875rem;padding:0 var(--gut) 9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dline .tag{margin-right:4px}
+.dmaps{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
+.pane{position:relative;flex:1 1 0;min-height:0;background:#D9DEE4;overflow:hidden;transition:flex-grow .2s}
+.pane>.mapbox{position:absolute;inset:0}
+.dmaps.bigmap #mapWrap,.dmaps.bigrv #rvWrap{flex-grow:2.3}
+.dmaps.norv #rvWrap{flex:0 0 auto;min-height:0}
+.dmaps.norv #rvWrap .mapbox,.dmaps.norv #rvWrap .ptools{display:none}
+.ptools{position:absolute;top:8px;right:8px;z-index:5;display:flex;gap:6px}
+.ptools button{height:36px;padding:0 11px;border-radius:8px;background:rgba(255,255,255,.94);color:var(--ink);font-size:.8125rem;font-weight:700;border:1px solid rgba(0,0,0,.08)}
+.ptools button[aria-pressed="true"]{background:var(--hdr);color:#fff}
+.pmsg{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);z-index:4;padding:0 20px;text-align:center;color:var(--ink2);font-size:.9375rem}
+.dmaps.norv #rvWrap .pmsg{position:static;transform:none;padding:12px 16px;text-align:left;background:var(--card)}
+.pmsg .btn{margin-top:10px;min-height:42px}
+
+/* 지도와 로드뷰 사이 띠: 사고지점과 로드뷰 촬영지점 거리 */
+.hinge{flex:0 0 auto;background:var(--card);border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:7px var(--gut) 8px;--hc:var(--ink3)}
+.hinge[data-lv="near"]{--hc:var(--near)} .hinge[data-lv="mid"]{--hc:var(--mid)} .hinge[data-lv="far"]{--hc:var(--far)}
+.hrow{display:flex;align-items:center;gap:8px;font-size:.8125rem;font-weight:700;color:var(--ink2);white-space:nowrap}
+.hrow .hl{flex:1;height:0;border-top:2px dashed var(--hc);opacity:.75}
+.hrow .hd{flex:0 0 auto;font-size:1.125rem;color:var(--hc);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.dot.acc{background:var(--acc);box-shadow:0 0 0 2px #fff,0 0 0 3px var(--acc)}
+.dot.rv{background:#fff;border:3px solid var(--rv)}
+.hnote{margin-top:2px;font-size:.8125rem;color:var(--hc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* 지도 위 표시 */
+.mk{position:relative;width:0;height:0}
+.mk i{position:absolute;left:-9px;top:-9px;width:18px;height:18px;border-radius:50%}
+.mk.acc i{background:var(--acc);box-shadow:0 0 0 3px #fff,0 0 0 4px var(--acc),0 2px 6px rgba(0,0,0,.35)}
+.mk.acc span{position:absolute;left:14px;top:-12px;padding:1px 6px;border-radius:5px;background:var(--acc);color:#fff;font-size:12px;font-weight:700;white-space:nowrap}
+.mk.rvm i{left:-8px;top:-8px;width:16px;height:16px;background:#fff;border:4px solid var(--rv);box-shadow:0 2px 6px rgba(0,0,0,.3)}
+
+/* 아래 버튼 줄 */
+.dbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.dbar button,.dbar a{min-height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.8125rem;font-weight:700;color:var(--ink);text-decoration:none;text-align:center;padding:4px 2px;line-height:1.25}
+.dbar button:active,.dbar a:active{background:#EEF1F4}
+.dbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.dbar .hot{color:var(--acc)}
+
+/* 아래에서 올라오는 창 */
+.sheet{position:fixed;inset:0;z-index:50}
+.shbg{position:absolute;inset:0;background:rgba(14,20,28,.5)}
+.shcard{position:absolute;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:88%;overflow-y:auto;overscroll-behavior:contain;background:var(--card);border-radius:14px 14px 0 0;padding:0 var(--gut) calc(22px + env(safe-area-inset-bottom))}
+.shh{position:sticky;top:0;z-index:2;background:var(--card);display:flex;align-items:center;justify-content:space-between;padding:12px 0 8px;border-bottom:1px solid var(--line)}
+.shh h2{margin:0;font-size:1.125rem}
+.shh .ib{color:var(--ink2)}
+.shh .ib:active{background:#EEF1F4}
+.sec{margin-top:16px}
+dl.kv{margin:0;display:grid;grid-template-columns:5.6em 1fr;gap:7px 10px;font-size:.9375rem}
+dl.kv dt{color:var(--ink3)}
+dl.kv dd{margin:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.chips .btn{min-height:40px;padding:0 14px;font-size:.875rem}
+.coord{font-variant-numeric:tabular-nums}
+.pre{white-space:pre-wrap;background:#F4F6F8;border-radius:8px;padding:10px 12px;font-size:.875rem;color:var(--ink2);margin:8px 0 0}
+.lbl{display:block;font-weight:700;margin:14px 0 6px}
+input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:#fff}
+.small{font-size:.8125rem;color:var(--ink3)}
+
+/* 사업장 후보 */
+.cand{border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:10px}
+.cand .n{font-weight:700}
+.cand .ad{font-size:.875rem;color:var(--ink2);margin-top:2px}
+.cand .acts{display:flex;gap:8px;margin-top:9px}
+.cand .acts .btn{flex:1;min-height:46px;font-size:.9375rem;white-space:nowrap}
+.cand .acts .btn.tel,.cand .acts .btn.ghost{flex:2.2}
+.btn.tel{background:var(--near);color:#fff}
+.btn.tel:active{background:#166A3B}
+.empty{margin-top:10px;padding:12px;border-radius:10px;background:#F4F6F8;color:var(--ink2);font-size:.9375rem}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid #C3CAD3;border-top-color:var(--ink2);border-radius:50%;animation:sp .8s linear infinite;vertical-align:-2px;margin-right:6px}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* 알림 */
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + env(safe-area-inset-bottom) + 14px);z-index:80;max-width:calc(100% - 2*var(--gut));padding:10px 16px;border-radius:8px;background:var(--ink);color:#fff;font-size:.9375rem;font-weight:600;box-shadow:0 6px 20px rgba(8,14,24,.25);text-align:center}
+.updbar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:79;width:calc(100% - 2*var(--gut));max-width:520px;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 16px;border-radius:10px;background:var(--ink);color:#fff;font-size:.9375rem}
+.updbar span{flex:1}
+.updbar button{height:40px;padding:0 14px;border-radius:8px;background:#fff;color:var(--ink);font-weight:700}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<header class="hdr" id="hdr">
+  <div class="hin">
+    <button class="back" id="hBack" data-back hidden>‹ 뒤로</button>
+    <h1 id="hTitle">119 사고현장 확인</h1>
+    <button class="ib" id="hSet" aria-label="설정">설정</button>
+  </div>
+</header>
+
+<main>
+  <!-- 첫 화면: 붙여넣기 -->
+  <section class="scr" id="sIn">
+    <p class="lead">카카오톡으로 받은 119 상황전파 메시지를 그대로 붙여넣으세요. 여러 건을 한꺼번에 넣어도 됩니다.</p>
+    <button class="btn big" id="bPaste">복사한 메시지 붙여넣고 확인</button>
+    <textarea id="raw" spellcheck="false" autocomplete="off" placeholder="[부상-상황전파 1보] 구급&#10;- 발생일시 : 2026-01-05 10:20:00&#10;- 사업장명 : 파악불가&#10;- 사고위치 : ○○시 ○○동 123-4&#10;- 사고내용 : …"></textarea>
+    <div class="row">
+      <button class="btn ghost" id="bClear">지우기</button>
+      <button class="btn pri" id="bGo">현장 확인</button>
+    </div>
+    <div class="err" id="inErr" hidden></div>
+    <div class="note warn" id="keyWarn" hidden>
+      <b>카카오 지도 키가 아직 없습니다.</b> 키를 넣기 전에는 메시지 분석과 외부 지도 열기만 됩니다.
+      <div><button class="btn pri" data-open-set>키 넣기</button></div>
+    </div>
+    <div class="recent" id="recent" hidden></div>
+    <div class="note" id="inst" hidden></div>
+  </section>
+
+  <!-- 여러 건일 때 목록 -->
+  <section class="scr" id="sList" hidden>
+    <p class="lead" id="listLead"></p>
+    <div id="listBody"></div>
+  </section>
+</main>
+<div class="foot" id="foot">메시지 분석은 이 휴대폰 안에서만 합니다. 카카오 지도에는 주소·좌표·검색어만 보냅니다.</div>
+
+<!-- 현장 화면 -->
+<section class="det" id="sDet" hidden aria-label="사고현장">
+  <div class="dhdr">
+    <button class="back" data-back aria-label="뒤로">‹ 뒤로</button>
+    <div class="dadr"><b id="dAddr"></b><span id="dSub"></span></div>
+    <button class="ib" id="dCopy">주소복사</button>
+  </div>
+  <div class="dline" id="dLine"></div>
+  <div class="dmaps" id="dMaps">
+    <div class="pane" id="mapWrap">
+      <div class="mapbox" id="map"></div>
+      <div class="ptools">
+        <button id="mType" aria-pressed="false">위성</button>
+        <button id="mBig" aria-pressed="false">지도 크게</button>
+      </div>
+      <div class="pmsg" id="mapMsg"></div>
+    </div>
+    <div class="hinge" id="hinge">
+      <div class="hrow"><span><i class="dot acc"></i>사고지점</span><span class="hl"></span><b class="hd" id="dist">…</b><span class="hl"></span><span><i class="dot rv"></i>로드뷰</span></div>
+      <div class="hnote" id="hnote">위치를 찾는 중입니다</div>
+    </div>
+    <div class="pane" id="rvWrap">
+      <div class="mapbox" id="rv"></div>
+      <div class="ptools">
+        <button id="rvAim">사고지점 쪽 보기</button>
+        <button id="rvBig" aria-pressed="false">로드뷰 크게</button>
+      </div>
+      <div class="pmsg" id="rvMsg"></div>
+    </div>
+  </div>
+  <nav class="dbar">
+    <button id="bInfo"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>사고정보·보고</button>
+    <button id="bBiz" class="hot"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>사업장 찾기</button>
+    <a id="lKakao" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>카카오맵</a>
+    <a id="lNaver"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>네이버지도</a>
+  </nav>
+</section>
+
+<!-- 사고정보·보고 -->
+<div class="sheet" id="shInfo" hidden role="dialog" aria-label="사고정보">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>사고정보</h2><button class="ib" data-back>닫기</button></div><div id="infoBody"></div></div>
+</div>
+<!-- 사업장 찾기 -->
+<div class="sheet" id="shBiz" hidden role="dialog" aria-label="사업장 찾기">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>사업장 찾기</h2><button class="ib" data-back>닫기</button></div><div id="bizBody"></div></div>
+</div>
+<!-- 설정 -->
+<div class="sheet" id="shSet" hidden role="dialog" aria-label="설정">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>설정</h2><button class="ib" data-back>닫기</button></div><div id="setBody"></div></div>
+</div>
+
+<div class="toast" id="toast" hidden role="status"></div>
+<div class="updbar" id="updbar" hidden><span>새 버전이 있습니다.</span><button id="bUpd">새로 열기</button></div>
+
+<script id="parser">
+// ===== PARSER-START: 119 상황전파 메시지 분석(이 휴대폰 안에서만 처리, 외부 전송 없음) =====
+(function (root) {
+  'use strict';
+  var KEY_ALIAS = { '발생일시': '발생일시', '발생시간': '발생일시', '발생시각': '발생일시', '일시': '발생일시', '신고일시': '발생일시',
+    '사업장명': '사업장명', '사업장': '사업장명', '업체명': '사업장명', '상호': '사업장명',
+    '사고위치': '사고위치', '사고장소': '사고위치', '발생장소': '사고위치', '발생위치': '사고위치', '위치': '사고위치', '주소': '사고위치',
+    '사고내용': '사고내용', '내용': '사고내용', '사고개요': '사고내용',
+    '기타사항': '기타사항', '기타': '기타사항', '피해현황': '피해현황', '피해': '피해현황', '기상': '기상', '날씨': '기상' };
+  var NONE_RE = /^(파악\s*불가|파악\s*안\s*됨|미상|불명|확인\s*불가|미확인|없음|해당\s*없음|-|\.|x)?$/i;
+  var REGION = [['서울특별시','서울'],['부산광역시','부산'],['대구광역시','대구'],['인천광역시','인천'],['광주광역시','광주'],['대전광역시','대전'],['울산광역시','울산'],['세종특별자치시','세종'],['경기도','경기'],['강원특별자치도','강원'],['강원도','강원'],['충청북도','충북'],['충청남도','충남'],['전북특별자치도','전북'],['전라북도','전북'],['전라남도','전남'],['경상북도','경북'],['경상남도','경남'],['제주특별자치도','제주']];
+
+  function norm(t) {
+    return String(t == null ? '' : t).replace(/\r\n?/g, '\n').replace(/[\u00A0\u2007\u202F\u3000\u200B]/g, ' ').replace(/：/g, ':').replace(/［/g, '[').replace(/］/g, ']');
+  }
+  function keyOf(k) { var s = String(k).replace(/\s+/g, ''); return KEY_ALIAS[s] || null; }
+
+  // 여러 건 붙여넣기 → 머리말 [ … ] 기준으로 나눔
+  function split(text) {
+    var t = norm(text).trim();
+    if (!t) return [];
+    var re = /^[ \t]*\[[^\]\n]*\]/gm, idx = [], m;
+    while ((m = re.exec(t))) idx.push(m.index);
+    if (!idx.length) return [t];
+    var parts = [];
+    if (idx[0] > 0) { var pre = t.slice(0, idx[0]).trim(); if (/사고\s*위치|사고\s*장소/.test(pre)) parts.push(pre); }
+    for (var i = 0; i < idx.length; i++) parts.push(t.slice(idx[i], i + 1 < idx.length ? idx[i + 1] : t.length).trim());
+    return parts;
+  }
+
+  function parseHeader(h) {
+    var o = { raw: h || '', kind: '', what: '', no: 0, disp: '' };
+    if (!h) return o;
+    var m = h.match(/\[\s*([^\]\-–—]+?)\s*[-–—]\s*([^\]]*?)\s*(\d+)\s*보\s*\]\s*(.*)$/);
+    if (m) { o.kind = m[1].trim(); o.what = m[2].trim(); o.no = +m[3]; o.disp = m[4].trim(); return o; }
+    m = h.match(/\[\s*([^\]]*?)\s*\]\s*(.*)$/);
+    if (m) { var inner = m[1]; var n = inner.match(/(\d+)\s*보/); o.no = n ? +n[1] : 0;
+      var k = inner.split(/[-–—]/)[0].trim(); o.kind = k; o.what = inner; o.disp = m[2].trim(); }
+    return o;
+  }
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function parseDate(s) {
+    var m = String(s || '').match(/(\d{4})\s*[-./년]\s*(\d{1,2})\s*[-./월]\s*(\d{1,2})\s*일?[^\d]+(\d{1,2})\s*[:시]\s*(\d{2})/);
+    if (!m) return { raw: s || '', disp: s || '', short: s || '', key: s || '' };
+    var y = +m[1], mo = +m[2], d = +m[3], h = +m[4], mi = +m[5];
+    return { raw: s, y: y, mo: mo, d: d, h: h, mi: mi,
+      disp: y + '.' + pad(mo) + '.' + pad(d) + '. ' + pad(h) + ':' + pad(mi),
+      short: pad(mo) + '.' + pad(d) + ' ' + pad(h) + ':' + pad(mi),
+      key: y + pad(mo) + pad(d) + pad(h) + pad(mi) };
+  }
+
+  // 주소 다듬기: 괄호·'부근' 같은 말은 메모로 빼고 검색용 주소만 남김
+  function cleanAddr(raw) {
+    var s = norm(raw).replace(/\s+/g, ' ').trim(), notes = [];
+    s = s.replace(/\(([^)]*)\)/g, function (_, x) { if (x.trim()) notes.push(x.trim()); return ' '; });
+    s = s.replace(/번지/g, ' ');
+    var tail = /\s*(일대|부근|인근|근처|주변|앞\s*도로|도로\s*상|도로|앞|뒤|옆|맞은편|건너편|입구)\s*$/;
+    for (var i = 0; i < 4 && tail.test(s); i++) s = s.replace(tail, function (x) { notes.push(x.trim()); return ''; });
+    s = s.replace(/(^|\s)산\s*(\d)/g, '$1산 $2').replace(/\s+/g, ' ').trim();
+    var road = /[가-힣0-9]+(로|길)\s*\d/.test(s);
+    var sido = '';
+    for (var j = 0; j < REGION.length; j++) { if (s.indexOf(REGION[j][0]) === 0 || s.indexOf(REGION[j][1] + ' ') === 0) { sido = REGION[j][1]; break; } }
+    var noLot = s.replace(/\s*(산\s*)?\d+(\s*-\s*\d+)?\s*$/, '').trim();
+    return { raw: String(raw || '').trim(), clean: s, notes: notes, road: road, sido: sido, noLot: noLot !== s ? noLot : '' };
+  }
+
+  // 사업장명 종류: 업체형 / 장소형(아파트 등 건물) / 건설현장형 / 미기재 / 판별불가
+  function classify(name) {
+    var raw = String(name || '').trim();
+    if (NONE_RE.test(raw)) return { type: 'none', raw: raw, base: '', q: '' };
+    var base = raw;
+    for (var i = 0; i < 3; i++) base = base.replace(/\s*\d+\s*(동|호|층)(\s*\d+\s*(호|층))*\s*$/, '').trim();
+    var q = base.replace(/㈜|\(주\)|\(유\)|주식회사|유한회사|유한책임회사/g, ' ').replace(/\s+/g, ' ').trim();
+    var type;
+    if (/현장|신축|증축|개축|리모델링|재건축|재개발|정비사업/.test(raw)) type = 'site';
+    else if (/㈜|\(주\)|주식회사|유한회사|관리사무소|관리소|공사$/.test(raw)) type = 'company';
+    else if (/아파트|빌라|맨션|오피스텔|주상복합|연립|다세대|타운하우스|단독주택|빌리지/.test(raw)) type = 'place';
+    else if (/산업|건설|공업|기업|상사|물산|개발|건영|토건|기공|중공업|전자|화학|철강|금속|정밀|산전|물류|유통|기계|테크|엔지니어링|종합|공장|농장|축산|식품|섬유|인테리어|설비|전기|공사|산림|조경|운수|운송|상회|산기|ENG|E&C/i.test(raw)) type = 'company';
+    else type = 'unknown';
+    return { type: type, raw: raw, base: base, q: q || base };
+  }
+
+  function details(content) {
+    var c = String(content || ''), o = {};
+    var h = c.match(/(\d+(?:\.\d+)?)\s*(m|M|미터|ｍ)(?![a-zA-Z/])/); if (h) o.height = h[1] + 'm';
+    var cs = c.match(/의식\s*(있음|없음|저하|명료|혼미|불명|있|없)/); if (cs) o.cons = '의식 ' + (cs[1] === '있' ? '있음' : cs[1] === '없' ? '없음' : cs[1]);
+    var p = c.match(/(\d0)\s*대\s*(남성|여성|남자|여자|남|여)?/); if (p) o.person = p[1] + '대' + (p[2] ? ' ' + p[2].replace(/^남자?$/, '남성').replace(/^여자?$/, '여성') : '');
+    if (/외국인/.test(c)) o.foreign = true;
+    if (/심정지|CPR|심폐소생/i.test(c)) o.cpr = true;
+    return o;
+  }
+
+  function isTraffic(content, addr) {
+    var c = String(content || '') + ' ' + String(addr || '');
+    return /교통사고|추돌|고속도로|톨게이트|나들목|(^|[^a-z])ic([^a-z]|$)|jc([^a-z]|$)|차량.{0,12}(부딪|충돌|전복)|(부딪|충돌).{0,6}차량/i.test(c);
+  }
+
+  function weather(s) {
+    var items = [], re = /([가-힣]+)\s*:\s*([^\s:]+)/g, m;
+    while ((m = re.exec(String(s || '')))) items.push([m[1], m[2]]);
+    return { raw: String(s || '').trim(), items: items };
+  }
+
+  function parseOne(block) {
+    var lines = norm(block).split('\n'), f = {}, extra = {}, last = null, header = null;
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].replace(/\s+$/, '');
+      if (!line.trim()) continue;
+      if (header === null && /^\s*\[/.test(line)) { header = line.trim(); last = null; continue; }
+      var m = line.match(/^\s*([-–·•*]?)\s*([가-힣A-Za-z][가-힣A-Za-z ]{0,9}?)\s*:\s?(.*)$/);
+      if (m) {
+        var k = keyOf(m[2]);
+        if (k) { f[k] = m[3].trim(); last = k; continue; }
+        if (m[1]) { extra[m[2].trim()] = m[3].trim(); last = null; continue; }
+      }
+      if (last) f[last] = (f[last] ? f[last] + ' ' : '') + line.trim();
+    }
+    var hd = parseHeader(header);
+    var addr = cleanAddr(f['사고위치'] || '');
+    var content = (f['사고내용'] || '').trim();
+    return {
+      header: hd, f: f, extra: extra,
+      date: parseDate(f['발생일시']),
+      biz: classify(f['사업장명']),
+      addr: addr,
+      content: content,
+      etc: (f['기타사항'] || '').trim(),
+      damage: (f['피해현황'] || '').trim(),
+      weather: weather(f['기상']),
+      det: details(content + ' ' + (f['기타사항'] || '')),
+      traffic: isTraffic(content + ' ' + (f['기타사항'] || ''), f['사고위치']),
+      ok: !!addr.clean,
+      raw: norm(block).trim()
+    };
+  }
+
+  // 같은 사고(발생일시+위치)의 1보·2보는 하나로 묶고 가장 최근 보고를 씀
+  function parseAll(text) {
+    var list = split(text).map(parseOne).filter(function (x) { return x.ok || x.content || x.header.raw; });
+    var map = {}, out = [];
+    list.forEach(function (x) {
+      var key = x.date.key + '|' + x.addr.clean.replace(/\s/g, '');
+      var g = map[key];
+      if (!g) { x.nos = x.header.no ? [x.header.no] : []; map[key] = x; out.push(x); return; }
+      if (x.header.no && g.nos.indexOf(x.header.no) < 0) g.nos.push(x.header.no);
+      if ((x.header.no || 0) >= (g.header.no || 0)) { x.nos = g.nos; map[key] = x; out[out.indexOf(g)] = x; }
+    });
+    out.forEach(function (x) { x.nos.sort(function (a, b) { return a - b; }); });
+    return out;
+  }
+
+  // 주소 비교(카카오 결과는 '경북 ○○군 …' 처럼 줄여 씀)
+  function addrKey(s) {
+    s = norm(s).replace(/번지/g, ' ').replace(/\s+/g, ' ').trim();
+    for (var i = 0; i < REGION.length; i++) if (s.indexOf(REGION[i][0]) === 0) { s = REGION[i][1] + s.slice(REGION[i][0].length); break; }
+    return s.replace(/\s/g, '');
+  }
+  function lotMain(s) {   // 'XX리1140-4' → {pre:'XX리', main:'1140', mt:false}
+    var m = addrKey(s).match(/^(.*?)(산?)(\d+)(?:-(\d+))?$/);
+    return m ? { pre: m[1], san: !!m[2], main: m[3], sub: m[4] || '' } : null;
+  }
+  function matchLevel(placeJibun, placeRoad, jibun, road) {
+    if (jibun && placeJibun && addrKey(placeJibun) === addrKey(jibun)) return 'exact';
+    if (road && placeRoad && addrKey(placeRoad) === addrKey(road)) return 'road';
+    var a = lotMain(placeJibun), b = lotMain(jibun);
+    if (a && b && a.pre === b.pre && a.san === b.san && a.main === b.main) return 'lot';
+    return '';
+  }
+
+  var P = { split: split, parseOne: parseOne, parseAll: parseAll, classify: classify, cleanAddr: cleanAddr, parseDate: parseDate, details: details, isTraffic: isTraffic, addrKey: addrKey, matchLevel: matchLevel, REGION: REGION };
+  if (typeof module !== 'undefined' && module.exports) module.exports = P; else root.P119 = P;
+})(this);
+// ===== PARSER-END =====
+</script>
+
+<script>
+(function () {
+  'use strict';
+  var P = window.P119;
+  var $ = function (id) { return document.getElementById(id); };
+  var LS = 'ndms-onestop.';   // 같은 주소(yeonskimm.github.io)의 법ON·오늘의안전과 저장공간이 같으므로 접두어 필수
+  function lsGet(k) { try { return localStorage.getItem(LS + k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (v == null) localStorage.removeItem(LS + k); else localStorage.setItem(LS + k, v); } catch (e) {} }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  var UA = navigator.userAgent || '';
+  var IOS = /iPhone|iPad|iPod/.test(UA) || (/Macintosh/.test(UA) && navigator.maxTouchPoints > 1);
+  var ANDR = /Android/i.test(UA);
+
+  // ── 알림 ──
+  function toast(msg, ms) { var el = $('toast'); el.textContent = msg; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, ms || 2000); }
+  function copy(text, done) {
+    var ok = function () { toast(done || '복사했습니다'); };
+    if (navigator.clipboard && window.isSecureContext) { navigator.clipboard.writeText(text).then(ok, function () { fallback(); }); }
+    else fallback();
+    function fallback() { var ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); ok(); } catch (e) { toast('복사하지 못했습니다'); } document.body.removeChild(ta); }
+  }
+
+  // ── 화면 이동·뒤로가기(법ON 방식) ──
+  // 안드로이드: 기록을 쌓아 휴대폰 뒤로 버튼 = 앱 안 '‹ 뒤로'. 첫 화면에서는 '한 번 더 누르면 종료'
+  // 아이폰: 기록을 쓰지 않음(스와이프 때 이전 화면 캡처가 비치는 문제) → 앱 안 '‹ 뒤로'로만 이동
+  var HIST = !IOS && !!(window.history && history.pushState);
+  var layers = [];          // 열린 화면·창 순서: 'sList' | 'sDet' | 'shInfo' | 'shBiz' | 'shSet'
+  var guardOn = false;
+  function topLayer() { return layers[layers.length - 1] || null; }
+  function isSheet(id) { return /^sh/.test(id); }
+  function paint() {
+    var t = topLayer(), screen = null;
+    for (var i = layers.length - 1; i >= 0; i--) if (!isSheet(layers[i])) { screen = layers[i]; break; }
+    $('sIn').hidden = !!screen;
+    $('sList').hidden = !(screen === 'sList' || (screen === 'sDet' && layers.indexOf('sList') >= 0));
+    $('sDet').hidden = screen !== 'sDet';
+    document.documentElement.classList.toggle('indet', screen === 'sDet');
+    $('foot').hidden = !!screen;
+    $('hBack').hidden = screen !== 'sList';
+    $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '119 사고현장 확인';
+    ['shInfo', 'shBiz', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
+    document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
+  }
+  function open(id) {
+    if (layers.indexOf(id) >= 0) return;
+    layers.push(id); paint();
+    if (HIST) { try { history.pushState({ os: layers.length }, ''); } catch (e) { HIST = false; } }
+    if (!isSheet(id)) window.scrollTo(0, 0);
+  }
+  function closeTop() {
+    var id = layers.pop(); paint();
+    if (id === 'sDet') onDetClosed();
+    if (!isSheet(id)) window.scrollTo(0, 0);
+  }
+  function back() { if (!layers.length) return; if (HIST) history.back(); else closeTop(); }
+  function exitHint() { toast('한 번 더 누르면 종료됩니다.', 2000); setTimeout(function () { if (!layers.length) pushGuard(); }, 2000); }
+  function pushGuard() { if (!ANDR || !HIST || guardOn) return; try { history.pushState({ os: 0, g: 1 }, ''); guardOn = true; } catch (e) {} }
+  window.addEventListener('popstate', function () {
+    if (layers.length) { closeTop(); return; }
+    if (ANDR && guardOn) { guardOn = false; exitHint(); }
+  });
+  // 크롬은 누르는 동작 없이 쌓인 기록을 뒤로 버튼이 건너뛰므로, 첫 화면 보호 기록은 누를 때 채움
+  document.addEventListener('click', function () { if (!layers.length) pushGuard(); }, true);
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-back]')) { e.preventDefault(); back(); }
+    else if (e.target.closest('[data-open-set]')) { openSettings(); }
+  });
+
+  // ── 첫 화면 ──
+  var current = null, parsed = [];
+  function showErr(msg) { var el = $('inErr'); el.innerHTML = msg; el.hidden = !msg; }
+  function run(text, fromUser) {
+    showErr('');
+    parsed = P.parseAll(text);
+    var good = parsed.filter(function (x) { return x.ok; });
+    if (!parsed.length || !good.length) {
+      showErr(parsed.length ? '사고위치를 찾지 못했습니다. 메시지에 <b>- 사고위치 :</b> 줄이 있는지 확인하세요.' : '분석할 내용이 없습니다. 119 상황전파 메시지를 붙여넣으세요.');
+      return;
+    }
+    saveRecent(parsed);
+    renderRecent();
+    if (parsed.length === 1) openDet(parsed[0]);
+    else { renderList(); open('sList'); }
+  }
+  $('bGo').addEventListener('click', function () { run($('raw').value, true); });
+  $('bClear').addEventListener('click', function () { $('raw').value = ''; showErr(''); $('raw').focus(); });
+  $('bPaste').addEventListener('click', function () {
+    if (!navigator.clipboard || !navigator.clipboard.readText) { $('raw').focus(); toast('입력칸을 길게 눌러 붙여넣기 하세요', 2600); return; }
+    navigator.clipboard.readText().then(function (t) {
+      if (!t || !t.trim()) { toast('복사된 내용이 없습니다', 2200); return; }
+      $('raw').value = t.trim(); run(t, true);
+    }, function () { $('raw').focus(); toast('입력칸을 길게 눌러 붙여넣기 하세요', 2600); });
+  });
+
+  function cardHTML(x, i) {
+    var kind = x.header.kind || '사고';
+    var nos = x.nos && x.nos.length ? ' ' + x.nos.join('·') + '보' : '';
+    var biz = x.biz.type === 'none' ? '' : ' / ' + esc(x.biz.raw);
+    return '<button class="card" data-i="' + i + '"' + (x.ok ? '' : ' disabled') + '>' +
+      '<div class="t"><b>' + esc(x.date.short) + '</b><span class="tag ' + (/사망|심정지/.test(kind) ? 'red' : '') + '">' + esc(kind) + nos + '</span>' + (x.traffic ? '<span class="tag amber">교통사고</span>' : '') + '</div>' +
+      '<div class="a">' + (x.ok ? esc(x.addr.clean) : '사고위치 없음') + '</div>' +
+      '<div class="c">' + esc(x.content || '') + biz + '</div></button>';
+  }
+  function renderList() {
+    $('listLead').textContent = parsed.length + '건을 받았습니다. 확인할 사고를 누르세요.';
+    $('listBody').innerHTML = parsed.map(cardHTML).join('');
+  }
+  $('listBody').addEventListener('click', function (e) { var b = e.target.closest('[data-i]'); if (b) openDet(parsed[+b.getAttribute('data-i')]); });
+
+  // 최근 기록: 같은 주소(yeonskimm.github.io)의 다른 앱과 저장공간을 공유하므로
+  // 다시 찾아가는 데 필요한 일시·유형·사고위치·사업장명만 저장(사고내용·기타사항·피해현황·기상은 저장 안 함)
+  function minimalText(list) {
+    return list.map(function (x) {
+      var h = x.header, L = [];
+      L.push('[' + (h.kind || '사고') + '-상황전파' + (h.no ? ' ' + h.no + '보' : '') + ']' + (h.disp ? ' ' + h.disp : ''));
+      if (x.date.raw) L.push('- 발생일시 : ' + x.date.raw);
+      L.push('- 사업장명 : ' + (x.biz.raw || ''));
+      L.push('- 사고위치 : ' + x.addr.raw);
+      return L.join('\n');
+    }).join('\n\n');
+  }
+  function saveRecent(list) { lsSet('last', JSON.stringify({ t: Date.now(), v: 2, raw: minimalText(list.filter(function (x) { return x.ok; })) })); }
+  (function migrate() {   // 이전 판(원문 전체 저장)에서 남은 기록을 줄임
+    try { var v = JSON.parse(lsGet('last') || 'null'); if (v && v.v !== 2 && v.raw) { var l = P.parseAll(v.raw); if (l.length) lsSet('last', JSON.stringify({ t: v.t, v: 2, raw: minimalText(l.filter(function (x) { return x.ok; })) })); else lsSet('last', null); } } catch (e) { lsSet('last', null); }
+  })();
+  function renderRecent() {
+    var el = $('recent'), v = null;
+    try { v = JSON.parse(lsGet('last') || 'null'); } catch (e) {}
+    if (!v || !v.raw || Date.now() - v.t > 24 * 3600 * 1000) { el.hidden = true; return; }
+    var list = P.parseAll(v.raw); if (!list.length) { el.hidden = true; return; }
+    el.innerHTML = '<h2>최근 확인한 사고(일시·위치·사업장명만 24시간 보관)</h2>' +
+      list.slice(0, 3).map(function (x, i) { return cardHTML(x, i).replace('class="card"', 'class="card" data-recent="1"'); }).join('') +
+      '<div class="row"><button class="btn ghost" id="bForget">최근 기록 지우기</button></div>';
+    el.hidden = false;
+    el._list = list;
+  }
+  $('recent').addEventListener('click', function (e) {
+    if (e.target.closest('#bForget')) { lsSet('last', null); renderRecent(); toast('지웠습니다'); return; }
+    var b = e.target.closest('[data-i]'); if (!b) return;
+    var list = $('recent')._list || []; parsed = list; openDet(list[+b.getAttribute('data-i')]);
+  });
+
+  // ── 현장 화면 ──
+  var K = null, map = null, rv = null, rvc = null, geocoder = null, places = null;
+  var accPos = null, rvPos = null, accOv = null, rvOv = null, line = null, aimNext = false, fitDone = false;
+  var loc = null;   // 현재 사고의 확인된 위치 {lat,lng,jibun,road,how,precise}
+  var runId = 0, bizCache = null;
+
+  function extLinks(x) {
+    var q = (loc && loc.jibun) || x.addr.clean;
+    $('lKakao').href = loc ? 'https://map.kakao.com/link/map/' + encodeURIComponent('사고지점') + ',' + loc.lat + ',' + loc.lng : 'https://map.kakao.com/link/search/' + encodeURIComponent(q);
+    $('lNaver').href = naverWeb(q); $('lNaver').setAttribute('data-naver', q);
+  }
+  // 네이버 지도: 휴대폰은 공식 앱 연결 방식(nmap://, appname 필수)으로 검색어 전달.
+  // 앱이 없어 1.5초 안에 화면이 바뀌지 않으면 네이버 검색으로 넘어감. PC는 웹 지도
+  var MOBILE = IOS || ANDR;
+  function naverWeb(q) { return MOBILE ? 'https://m.search.naver.com/search.naver?query=' + encodeURIComponent(q) : 'https://map.naver.com/p/search/' + encodeURIComponent(q); }
+  function naverApp(q) { return 'nmap://search?query=' + encodeURIComponent(q) + '&appname=' + encodeURIComponent(location.host || 'ndms-onestop'); }
+  function openNaver(q) {
+    if (!MOBILE) { window.open(naverWeb(q), '_blank', 'noopener'); return; }
+    var t = setTimeout(function () { if (!document.hidden) location.href = naverWeb(q); }, 1500);
+    var stop = function () { if (document.hidden) clearTimeout(t); };
+    document.addEventListener('visibilitychange', stop, { once: true });
+    window.addEventListener('pagehide', function () { clearTimeout(t); }, { once: true });
+    location.href = naverApp(q);
+  }
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-naver]'); if (!a) return;
+    e.preventDefault(); openNaver(a.getAttribute('data-naver'));
+  });
+  function setHinge(lv, dist, note) {
+    var h = $('hinge'); h.setAttribute('data-lv', lv || '');
+    $('dist').textContent = dist; $('hnote').textContent = note;
+  }
+
+  function openDet(x) {
+    current = x; loc = null; bizCache = null; fitDone = false; rvPos = null; accPos = null; kakaoErr = false;
+    if (accOv) { accOv.setMap(null); rvOv.setMap(null); line.setMap(null); }   // 이전 사고 표시가 남아 다른 사고로 오인되지 않게
+    var my = ++runId;
+    $('dAddr').textContent = shortAddr(x.addr.clean) || '사고위치 없음';
+    $('dSub').textContent = (x.addr.notes.length ? '메모: ' + x.addr.notes.join(', ') + ' / ' : '') + '위치를 찾는 중';
+    var kind = x.header.kind || '사고';
+    var bits = [];
+    if (x.det.height) bits.push(x.det.height);
+    if (x.det.cons) bits.push(x.det.cons);
+    $('dLine').innerHTML = '<span class="tag ' + (/사망/.test(kind) || x.det.cpr ? 'red' : 'blue') + '">' + esc(kind) + (x.header.disp ? ' ' + esc(x.header.disp) : '') + '</span>' +
+      esc(x.date.short) + ' / ' + esc(x.damage || '피해현황 없음') + ' / ' + esc(x.content.replace(/\(.*?\)/g, '').trim() || '사고내용 없음') + (bits.length ? ' (' + esc(bits.join(', ')) + ')' : '');
+    $('dMaps').className = 'dmaps';
+    $('mBig').setAttribute('aria-pressed', 'false'); $('rvBig').setAttribute('aria-pressed', 'false');
+    $('mapMsg').innerHTML = '<span class="spin"></span>지도를 여는 중'; $('rvMsg').innerHTML = '';
+    setHinge('', '…', '위치를 찾는 중입니다');
+    extLinks(x);
+    open('sDet');
+    if (!getKey()) {
+      noKakao('카카오 지도 키가 없어 지도를 띄울 수 없습니다. 아래 카카오맵·네이버지도 버튼으로 확인하거나 설정에서 키를 넣으세요.', true);
+      return;
+    }
+    requestAnimationFrame(function () {
+      loadKakao().then(function () {
+        if (my !== runId) return;
+        initMaps();
+        return locate(x).then(function (r) {
+          if (my !== runId) return;
+          if (!r) { failLocate(x); return; }
+          loc = r; showLoc(x, r); extLinks(x);
+        });
+      }).catch(function (e) {
+        if (my !== runId) return;
+        noKakao(e && e.message === 'NOKEY' ? '카카오 지도 키가 없습니다.' :
+          '카카오 지도를 불러오지 못했습니다. 인터넷 연결, 설정의 키, 카카오 Developers에 이 사이트 주소(' + esc(location.origin) + ')가 등록됐는지 확인하세요.', true);
+      });
+    });
+  }
+  function onDetClosed() { runId++; }
+  // 머리 띠에는 시·도를 빼고 시군구부터(좁은 화면에서 리·번지가 잘리지 않게). 복사는 전체 주소
+  function shortAddr(a) { a = a || ''; for (var i = 0; i < P.REGION.length; i++) { var r = P.REGION[i]; if (a.indexOf(r[0] + ' ') === 0) return a.slice(r[0].length + 1); if (a.indexOf(r[1] + ' ') === 0) return a.slice(r[1].length + 1); } return a; }
+  function noKakao(msg, setBtn) {
+    $('mapMsg').innerHTML = msg + (setBtn ? '<div><button class="btn line" data-open-set>설정 열기</button></div>' : '');
+    $('dMaps').className = 'dmaps norv';
+    $('rvMsg').textContent = '';
+    setHinge('', '—', '지도 없이 분석 결과만 표시합니다');
+    $('dSub').textContent = '지도 없음';
+  }
+  function failLocate(x) {
+    $('mapMsg').innerHTML = kakaoErr
+      ? '<b>카카오 지도 서버가 오류를 돌려줬습니다.</b> 일일 사용량 초과나 키 설정 문제일 수 있습니다(주소 문제 아님). 아래 <b>네이버지도</b>·<b>카카오맵</b> 버튼으로 확인하세요.'
+      : '주소로 위치를 찾지 못했습니다. 아래 <b>네이버지도</b>·<b>카카오맵</b> 버튼으로 직접 검색하세요.';
+    $('dMaps').className = 'dmaps norv'; $('rvMsg').textContent = '';
+    setHinge('far', '—', kakaoErr ? '위치 미확인: 카카오 응답 오류' : '위치 미확인: 주소 표기를 확인하세요');
+    $('dSub').textContent = '위치 미확인';
+  }
+
+  // 카카오 지도 불러오기(키는 이 휴대폰에만 저장, 코드에 넣지 않음)
+  var kP = null;
+  // 기본 키: GitHub 저장소에는 자리표시만 있고, 배포(GitHub Actions) 때 비밀값 KAKAO_JS_KEY로 바뀜
+  // 설정에서 개인 키를 넣으면 그 키가 우선
+  var DEFAULT_KEY = '__KAKAO_JS_KEY__';
+  function defaultKey() { return /^[0-9a-f]{32}$/i.test(DEFAULT_KEY) ? DEFAULT_KEY : ''; }
+  function ownKey() { return (lsGet('kakaoKey') || '').trim(); }
+  function getKey() { return ownKey() || defaultKey(); }
+  function loadKakao() {
+    if (window.kakao && kakao.maps && kakao.maps.services) return Promise.resolve();
+    if (kP) return kP;
+    var key = getKey(); if (!key) return Promise.reject(new Error('NOKEY'));
+    kP = new Promise(function (res, rej) {
+      var s = document.createElement('script'), done = false;
+      var t = setTimeout(function () { if (!done) { done = true; rej(new Error('TIMEOUT')); } }, 12000);
+      s.src = 'https://dapi.kakao.com/v2/maps/sdk.js?appkey=' + encodeURIComponent(key) + '&libraries=services&autoload=false';
+      s.onload = function () {
+        if (!window.kakao || !kakao.maps || !kakao.maps.load) { done = true; clearTimeout(t); rej(new Error('BADKEY')); return; }
+        kakao.maps.load(function () { if (done) return; done = true; clearTimeout(t); res(); });
+      };
+      s.onerror = function () { if (done) return; done = true; clearTimeout(t); rej(new Error('NET')); };
+      document.head.appendChild(s);
+    });
+    kP.catch(function () { kP = null; });
+    return kP;
+  }
+
+  function initMaps() {
+    if (map) return;
+    K = kakao.maps;
+    var c0 = new K.LatLng(35.8714, 128.6014);
+    map = new K.Map($('map'), { center: c0, level: 3 });
+    map.addOverlayMapTypeId(K.MapTypeId.ROADVIEW);   // 로드뷰가 있는 길(파란 선) 표시
+    rv = new K.Roadview($('rv'));
+    rvc = new K.RoadviewClient();
+    geocoder = new K.services.Geocoder();
+    places = new K.services.Places();
+    var accEl = document.createElement('div'); accEl.className = 'mk acc'; accEl.innerHTML = '<i></i><span>사고</span>';
+    var rvEl = document.createElement('div'); rvEl.className = 'mk rvm'; rvEl.innerHTML = '<i></i>';
+    accOv = new K.CustomOverlay({ content: accEl, position: c0, zIndex: 3 });
+    rvOv = new K.CustomOverlay({ content: rvEl, position: c0, zIndex: 2 });
+    line = new K.Polyline({ path: [c0, c0], strokeWeight: 3, strokeColor: '#1D6ED8', strokeOpacity: .85, strokeStyle: 'shortdash' });
+    K.event.addListener(rv, 'init', onRvPos);
+    K.event.addListener(rv, 'position_changed', onRvPos);
+    // 지도를 누르면 그 근처(50m) 로드뷰로 이동하고 사고지점 쪽을 바라봄
+    K.event.addListener(map, 'click', function (e) {
+      rvc.getNearestPanoId(e.latLng, 50, function (id) {
+        if (!id) { toast('그 근처 50m 안에 로드뷰가 없습니다'); return; }
+        aimNext = true; rv.setPanoId(id, e.latLng);
+      });
+    });
+  }
+  // 카카오 응답이 '결과 없음'이 아니라 '오류'(사용량 초과·키 문제 등)면 따로 표시해, 주소 문제로 오인하지 않게 함
+  var kakaoErr = false;
+  function ps(fn) { return new Promise(function (r) { fn(function (res, st) { if (st === kakao.maps.services.Status.ERROR) kakaoErr = true; r(st === kakao.maps.services.Status.OK ? res : []); }); }); }
+  function addrSearch(q) { return ps(function (cb) { geocoder.addressSearch(q, cb); }); }
+  function kwSearch(q, opt) { return ps(function (cb) { places.keywordSearch(q, cb, opt || {}); }); }
+  function c2a(lat, lng) { return ps(function (cb) { geocoder.coord2Address(lng, lat, cb); }); }
+
+  // 주소 → 좌표: ① 주소검색 → ② 장소검색 → ③ 번지 빼고 주소검색(동·리 중심, 정확도 낮음)
+  function locate(x) {
+    var a = x.addr.clean, out = null;
+    function fromAddr(r, how) {
+      var best = r.filter(function (v) { return /_ADDR$/.test(v.address_type); })[0] || r[0];
+      return { lat: +best.y, lng: +best.x, jibun: best.address ? best.address.address_name : '', road: best.road_address ? best.road_address.address_name : '',
+        precise: /_ADDR$/.test(best.address_type), how: how || (/_ADDR$/.test(best.address_type) ? '' : '번지까지 일치하지 않아 동·리 단위 위치'), multi: r.length };
+    }
+    return addrSearch(a).then(function (r) {
+      if (r.length) { out = fromAddr(r); return; }
+      return kwSearch(a).then(function (k) {
+        if (k.length) { out = { lat: +k[0].y, lng: +k[0].x, jibun: k[0].address_name || '', road: k[0].road_address_name || '', precise: false, how: '주소검색 실패, 장소검색(' + k[0].place_name + ') 위치' }; return; }
+        if (x.addr.noLot) return addrSearch(x.addr.noLot).then(function (r2) { if (r2.length) out = fromAddr(r2, '번지를 못 찾아 동·리 중심 위치(정확도 낮음)'); });
+      });
+    }).then(function () {
+      if (!out) return null;
+      if (out.jibun && out.road) return out;
+      return c2a(out.lat, out.lng).then(function (r) {
+        if (r.length) { if (!out.jibun && r[0].address) out.jibun = r[0].address.address_name; if (!out.road && r[0].road_address) out.road = r[0].road_address.address_name; }
+        return out;
+      });
+    });
+  }
+
+  function showLoc(x, r) {
+    $('mapMsg').innerHTML = '';
+    accPos = new K.LatLng(r.lat, r.lng);
+    map.relayout(); rv.relayout();
+    map.setLevel(3); map.setCenter(accPos);
+    accOv.setPosition(accPos); accOv.setMap(map);
+    rvOv.setMap(null); line.setMap(null);
+    $('dSub').textContent = (r.road ? '도로명 ' + r.road : (r.jibun ? '지번 ' + r.jibun : '')) + (r.how ? ' / ' + r.how : '');
+    setHinge('', '…', '가장 가까운 로드뷰를 찾는 중');
+    // 300m 안 가장 가까운 촬영지점(가장 가까운 것을 주므로 50·100·300m 단계 검색과 결과가 같음)
+    var my = runId;
+    rvc.getNearestPanoId(accPos, 300, function (id) {
+      if (my !== runId) return;
+      if (!id) {
+        $('dMaps').className = 'dmaps norv';
+        $('rvMsg').innerHTML = '사고지점 300m 안에 로드뷰가 없습니다. 위성지도로 확인하세요.';
+        setHinge('far', '없음', '주변 300m 안에 로드뷰 없음');
+        setTimeout(function () { map.relayout(); map.setCenter(accPos); }, 60);
+        return;
+      }
+      aimNext = true; rv.setPanoId(id, accPos);
+    });
+  }
+
+  function haversine(a, b) {
+    var R = 6371008.8, toR = Math.PI / 180;
+    var dLat = (b.getLat() - a.getLat()) * toR, dLng = (b.getLng() - a.getLng()) * toR;
+    var s = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.getLat() * toR) * Math.cos(b.getLat() * toR) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.asin(Math.sqrt(s));
+  }
+  function bearing(from, to) {
+    var toR = Math.PI / 180, la1 = from.getLat() * toR, la2 = to.getLat() * toR, dl = (to.getLng() - from.getLng()) * toR;
+    var y = Math.sin(dl) * Math.cos(la2), x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dl);
+    return (Math.atan2(y, x) / toR + 360) % 360;
+  }
+  function onRvPos() {
+    if (!accPos) return;
+    var p = rv.getPosition(); if (!p) return;
+    rvPos = p;
+    rvOv.setPosition(p); rvOv.setMap(map);
+    line.setPath([accPos, p]); line.setMap(map);
+    var d = haversine(accPos, p), dm = Math.round(d);
+    var lv = d <= 50 ? 'near' : d <= 100 ? 'mid' : 'far';
+    var note = lv === 'near' ? '로드뷰가 사고지점 가까이에서 찍혔습니다' : lv === 'mid' ? '로드뷰가 사고지점에서 조금 떨어진 곳에서 찍혔습니다' : '로드뷰 화면은 사고지점이 아닙니다. 지도로 위치를 함께 확인하세요';
+    setHinge(lv, (dm < 1000 ? dm + 'm' : (d / 1000).toFixed(1) + 'km'), note);
+    if (aimNext && d > 3) { aimNext = false; rv.setViewpoint({ pan: bearing(p, accPos), tilt: 0, zoom: 0 }); }
+    else aimNext = false;
+    if (!fitDone) {
+      fitDone = true;
+      var b = new K.LatLngBounds(); b.extend(accPos); b.extend(p);
+      map.setBounds(b, 70, 50, 70, 50);
+      if (map.getLevel() < 2) map.setLevel(2);
+    }
+  }
+  $('rvAim').addEventListener('click', function () { if (rvPos && accPos && rv) rv.setViewpoint({ pan: bearing(rvPos, accPos), tilt: 0, zoom: 0 }); });
+  $('mType').addEventListener('click', function () {
+    if (!map) return; var on = this.getAttribute('aria-pressed') !== 'true';
+    map.setMapTypeId(on ? K.MapTypeId.HYBRID : K.MapTypeId.ROADMAP);
+    if (on) map.removeOverlayMapTypeId(K.MapTypeId.ROADVIEW); else map.addOverlayMapTypeId(K.MapTypeId.ROADVIEW);
+    this.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  function toggleBig(cls, btn, other) {
+    var dm = $('dMaps'); if (dm.classList.contains('norv')) return;
+    var on = !dm.classList.contains(cls);
+    dm.classList.remove('bigmap', 'bigrv'); if (on) dm.classList.add(cls);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false'); other.setAttribute('aria-pressed', 'false');
+    setTimeout(function () { if (map) { map.relayout(); if (accPos) map.setCenter(accPos); } if (rv) rv.relayout(); }, 230);
+  }
+  $('mBig').addEventListener('click', function () { toggleBig('bigmap', this, $('rvBig')); });
+  $('rvBig').addEventListener('click', function () { toggleBig('bigrv', this, $('mBig')); });
+  window.addEventListener('resize', function () { if (map && !$('sDet').hidden) { map.relayout(); if (rv) rv.relayout(); } });
+  $('dCopy').addEventListener('click', function () { if (current) copy((loc && loc.jibun) || current.addr.clean, '주소를 복사했습니다'); });
+
+  // ── 사고정보·보고 ──
+  function reportText(x) {
+    var L = [];
+    L.push('[사고현황]');
+    L.push('- 발생일시: ' + (x.date.disp || '🔵 확인 필요'));
+    L.push('- 사고유형: ' + (x.header.kind || '🔵 확인 필요') + (x.header.disp ? ' / ' + x.header.disp : '') + (x.nos && x.nos.length ? ' (' + x.nos.join('·') + '보 수신)' : ''));
+    L.push('- 사고위치: ' + (x.addr.raw || '🔵 확인 필요'));
+    if (loc && loc.road) L.push('  · 도로명: ' + loc.road);
+    L.push('- 사고내용: ' + (x.content || '🔵 확인 필요'));
+    L.push('- 피해현황: ' + (x.damage || '🔵 확인 필요'));
+    L.push('- 119 기재 사업장명: ' + (x.biz.type === 'none' ? (x.biz.raw || '없음') : x.biz.raw));
+    L.push('- 확인사업장: 🔵 확인 필요');
+    L.push('- 사업장 연락처: 🔵 확인 필요');
+    L.push('- 좌표: ' + (loc ? loc.lat.toFixed(6) + ', ' + loc.lng.toFixed(6) + (loc.precise ? '' : ' (🔵 위치 정확도 낮음)') : '🔵 확인 필요'));
+    L.push('- 확인사항: 🔵 확인 결과 입력');
+    return L.join('\n');
+  }
+  function renderInfo() {
+    var x = current; if (!x) return;
+    var d = x.det, sub = [];
+    if (d.height) sub.push('높이 ' + d.height);
+    if (d.cons) sub.push(d.cons);
+    if (d.person) sub.push(d.person);
+    if (d.foreign) sub.push('외국인');
+    if (d.cpr) sub.push('심정지·CPR 언급');
+    var h = '<div class="sec"><dl class="kv">' +
+      '<dt>발생일시</dt><dd>' + esc(x.date.disp || '없음') + '</dd>' +
+      '<dt>유형</dt><dd>' + esc((x.header.kind || '') + (x.header.disp ? ' / ' + x.header.disp : '')) + (x.nos && x.nos.length ? ' <span class="tag">' + x.nos.join('·') + '보</span>' : '') + (x.traffic ? ' <span class="tag amber">교통사고로 보임</span>' : '') + '</dd>' +
+      '<dt>사업장명</dt><dd>' + esc(x.biz.raw || '없음') + ' <span class="tag">' + ({ none: '미기재', company: '업체명', place: '건물명', site: '건설현장', unknown: '종류 불명' })[x.biz.type] + '</span></dd>' +
+      '<dt>사고내용</dt><dd>' + esc(x.content || '없음') + (sub.length ? '<div class="small">' + esc(sub.join(' / ')) + '</div>' : '') + '</dd>' +
+      (x.etc ? '<dt>기타사항</dt><dd>' + esc(x.etc) + '</dd>' : '') +
+      '<dt>피해현황</dt><dd>' + esc(x.damage || '없음') + '</dd>' +
+      '<dt>기상</dt><dd>' + esc(x.weather.items.length ? x.weather.items.map(function (w) { return w[0] + ' ' + w[1]; }).join(', ') : (x.weather.raw || '없음')) + '</dd>' +
+      '</dl></div>';
+    h += '<div class="sec"><h2>위치</h2><dl class="kv">' +
+      '<dt>119 원문</dt><dd>' + esc(x.addr.raw) + (x.addr.notes.length ? '<div class="small">메모: ' + esc(x.addr.notes.join(', ')) + '</div>' : '') + '</dd>' +
+      '<dt>지번</dt><dd>' + esc(loc && loc.jibun || '확인 전') + '</dd>' +
+      '<dt>도로명</dt><dd>' + esc(loc && loc.road || (loc ? '없음' : '확인 전')) + '</dd>' +
+      '<dt>좌표</dt><dd class="coord">' + (loc ? loc.lat.toFixed(6) + ', ' + loc.lng.toFixed(6) : '확인 전') + '</dd>' +
+      (loc && loc.how ? '<dt>정확도</dt><dd><span class="tag amber">주의</span> ' + esc(loc.how) + '</dd>' : '') +
+      (rvPos && accPos ? '<dt>로드뷰</dt><dd>사고지점에서 ' + Math.round(haversine(accPos, rvPos)) + 'm 떨어진 곳에서 촬영</dd>' : '') +
+      '</dl><div class="chips">' +
+      '<button class="btn line" data-cp="addr">주소복사</button>' +
+      (loc ? '<button class="btn line" data-cp="coord">좌표복사</button>' : '') +
+      '<a class="btn line" target="_blank" rel="noopener" href="' + (loc ? 'https://map.kakao.com/link/roadview/' + loc.lat + ',' + loc.lng : 'https://map.kakao.com/link/search/' + encodeURIComponent(x.addr.clean)) + '">카카오 로드뷰 앱으로</a>' +
+      '</div></div>';
+    h += '<div class="sec"><h2>보고용 내용</h2><div class="pre" id="repPre">' + esc(reportText(x)) + '</div>' +
+      '<div class="chips"><button class="btn pri" data-cp="rep">보고용 내용 복사</button><button class="btn line" data-cp="raw">119 원문 복사</button></div></div>';
+    $('infoBody').innerHTML = h;
+  }
+  $('bInfo').addEventListener('click', function () { renderInfo(); open('shInfo'); $('shInfo').querySelector('.shcard').scrollTop = 0; });
+  $('infoBody').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-cp]'); if (!b || !current) return;
+    var k = b.getAttribute('data-cp');
+    if (k === 'addr') copy((loc && loc.jibun) || current.addr.clean, '주소를 복사했습니다');
+    else if (k === 'coord' && loc) copy(loc.lat.toFixed(6) + ', ' + loc.lng.toFixed(6), '좌표를 복사했습니다');
+    else if (k === 'rep') copy(reportText(current), '보고용 내용을 복사했습니다');
+    else if (k === 'raw') copy(current.raw, '원문을 복사했습니다');
+  });
+
+  // ── 사업장 찾기(자동확정 안 함: 모두 '후보') ──
+  var TYPE_GUIDE = {
+    company: function (x) { return '<b>119 기재 사업장: ' + esc(x.biz.raw) + '</b><br>같은 이름의 장소를 사고지점 주변에서 찾았습니다. 이름이 같아도 다른 곳일 수 있으니 전화로 확인하세요.'; },
+    unknown: function (x) { return '<b>119 기재 이름: ' + esc(x.biz.raw) + '</b><br>업체명인지 건물명인지 구분되지 않아 이름 그대로 찾았습니다.'; },
+    place: function (x) { return '<b>' + esc(x.biz.raw) + '</b>는 사고가 난 <b>건물</b>입니다. 실제 사업주(관리사무소, 공사·용역업체, 세대 인테리어업체 등)는 따로 확인해야 합니다. 공사업체를 아는 경우가 많은 <b>관리사무소</b>를 먼저 찾았습니다.'; },
+    site: function (x) { return '<b>' + esc(x.biz.raw) + '</b>는 건설현장명입니다. 시공사(원청) 확인이 필요합니다. 현장명으로 찾은 결과입니다.'; },
+    none: function () { return '사업장명이 없습니다(파악불가). <b>사고 주소에 등록된 장소</b>를 찾아봅니다. 공장·작업장은 지도에 없는 경우가 많아 비어 있을 수 있습니다. 비어 있으면 네이버지도의 \'이 주소의 장소\'로 확인하세요.'; }
+  };
+  function bizQueries(x) {
+    var b = x.biz, qs = [];
+    if (b.type === 'place') { qs.push({ q: b.q + ' 관리사무소', r: 1500, label: '관리사무소' }); qs.push({ q: b.q, r: 800, label: '건물' }); }
+    else if (b.type === 'site') { qs.push({ q: b.q, r: 3000, label: '현장명' }); var first = b.q.split(' ')[0]; if (first && first !== b.q) qs.push({ q: first, r: 3000, label: '업체명' }); }
+    else if (b.type === 'company' || b.type === 'unknown') { qs.push({ q: b.q, r: 5000, label: '이름' }); }
+    else { if (loc && loc.jibun) qs.push({ q: loc.jibun, r: 300, label: '주소', addrOnly: true }); if (loc && loc.road) qs.push({ q: loc.road, r: 300, label: '도로명주소', addrOnly: true }); }
+    return qs;
+  }
+  var ML = { exact: ['green', '주소 일치'], road: ['green', '도로명 일치'], lot: ['blue', '같은 번지(본번)'] };
+  function candHTML(p) {
+    var d = Math.round(+p.distance || 0);
+    var lv = ML[p._m];
+    var tel = (p.phone || '').replace(/[^\d-]/g, '');
+    return '<div class="cand"><div class="n">' + esc(p.place_name) + ' ' + (lv ? '<span class="tag ' + lv[0] + '">' + lv[1] + '</span>' : '<span class="tag">사고지점에서 약 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') + '</span>') + '</div>' +
+      '<div class="ad">' + esc(p.address_name || '') + (p.road_address_name ? ' / ' + esc(p.road_address_name) : '') + (p.category_name ? '<br>' + esc(p.category_name) : '') + '</div>' +
+      '<div class="acts">' + (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' : '<span class="btn ghost" aria-disabled="true">전화번호 없음</span>') +
+      (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">상세</a>' : '') + '</div></div>';
+  }
+  function renderBiz() {
+    var x = current; if (!x) return;
+    var el = $('bizBody');
+    var ext = function (q) { return '<a class="btn line" href="' + esc(naverWeb(q)) + '" data-naver="' + esc(q) + '">네이버지도: ' + esc(q) + '</a>'; };
+    var addrQ = (loc && loc.jibun) || x.addr.clean;
+    var h = (x.traffic ? '<div class="note warn" style="margin-top:14px"><b>도로 위 교통사고로 보입니다.</b> 주소 주변 업체가 사고 사업장일 가능성은 낮습니다. 차량 소속은 119 상황실에 확인하세요.</div>' : '') +
+      '<div class="note" style="margin-top:14px">' + TYPE_GUIDE[x.biz.type](x) + '</div>';
+    var qs = bizQueries(x);
+    if (!getKey() || !places || !loc) {
+      h += '<div class="empty">' + (!getKey() ? '카카오 지도 키가 없어 자동으로 찾을 수 없습니다.' : '사고 위치를 확인하지 못해 자동으로 찾을 수 없습니다.') + ' 아래 버튼으로 직접 찾으세요.</div>';
+    } else h += '<div id="bizRes"><div class="empty"><span class="spin"></span>찾는 중</div></div>';
+    h += '<div class="sec"><h2>직접 확인</h2><div class="chips">' + ext(addrQ) + (x.biz.type !== 'none' ? ext(x.biz.q + (x.biz.type === 'place' ? ' 관리사무소' : '')) : '') + '</div></div>';
+    h += '<div class="sec"><p class="small">지도 검색 결과는 참고용 후보입니다. 사업장 확정은 전화 등으로 직접 확인한 뒤 판단하세요. 관할 상황실 전화 버튼은 다음 단계에서 추가됩니다.</p></div>';
+    el.innerHTML = h;
+    if (!getKey() || !places || !loc) return;
+    if (bizCache) { $('bizRes').innerHTML = bizCache; return; }
+    var my = runId, center = new K.LatLng(loc.lat, loc.lng);
+    Promise.all(qs.map(function (q) { return kwSearch(q.q, { location: center, radius: q.r, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) { return { q: q, r: r }; }); })).then(function (rs) {
+      if (my !== runId) return;
+      var seen = {}, out = '';
+      rs.forEach(function (g) {
+        var list = g.r.filter(function (p) { if (seen[p.id]) return false; seen[p.id] = 1; p._m = P.matchLevel(p.address_name, p.road_address_name, loc.jibun, loc.road); return g.q.addrOnly ? !!p._m : true; });
+        list.sort(function (a, b) { var o = { exact: 0, road: 0, lot: 1 }; var ra = a._m ? o[a._m] : 2, rb = b._m ? o[b._m] : 2; return ra - rb || (+a.distance - +b.distance); });
+        out += '<div class="sec"><h2>' + esc(g.q.label) + '(으)로 찾은 후보: \'' + esc(g.q.q) + '\'</h2>' + (list.length ? list.slice(0, 6).map(candHTML).join('') : '<div class="empty">찾은 곳이 없습니다.</div>') + '</div>';
+      });
+      if (!qs.length) out = '<div class="empty">찾을 검색어가 없습니다.</div>';
+      if (kakaoErr) out = '<div class="note warn" style="margin-top:14px">카카오 검색이 오류를 돌려줬습니다(사용량 초과 가능성). 결과가 비어 있어도 해당 장소가 없다는 뜻은 아닙니다.</div>' + out;
+      bizCache = out; var r = $('bizRes'); if (r) r.innerHTML = out;
+    });
+  }
+  $('bBiz').addEventListener('click', function () { renderBiz(); open('shBiz'); $('shBiz').querySelector('.shcard').scrollTop = 0; });
+
+  // ── 설정 ──
+  function openSettings() {
+    var k = ownKey(), d = defaultKey();
+    var state = k ? '<span class="tag blue">개인 키 사용 중</span>' : d ? '<span class="tag green">기본 키 사용 중</span> 따로 넣을 필요 없습니다.' : '<span class="tag amber">키 없음</span> 지도를 쓰려면 키를 넣으세요.';
+    $('setBody').innerHTML =
+      '<label class="lbl" for="kKey">카카오 JavaScript 키</label>' +
+      '<p class="small" style="margin:0 0 8px">' + state + '</p>' +
+      '<input class="txt" id="kKey" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + (d ? '비워 두면 기본 키 사용' : '카카오 Developers의 JavaScript 키') + '" value="' + esc(k) + '">' +
+      '<p class="small">개인 키는 이 휴대폰에만 저장되고 기본 키보다 우선합니다. 카카오 Developers의 [앱] &gt; [플랫폼 키] &gt; [JavaScript 키] &gt; [JavaScript SDK 도메인]에 아래 사이트 주소가 등록돼 있어야 지도가 열립니다.</p>' +
+      '<div class="pre">' + esc(location.origin) + '</div>' +
+      '<div class="chips"><button class="btn pri" id="kSave">저장</button>' + (k ? '<button class="btn ghost" id="kDel">' + (d ? '개인 키 지우기(기본 키로)' : '키 지우기') + '</button>' : '') + '</div>' +
+      '<div class="sec"><h2>이 휴대폰에 저장된 것</h2><p class="small">개인 카카오 키(넣은 경우), 최근 확인한 사고의 일시·유형·위치·사업장명(24시간 지나면 표시 안 함). 사고내용·피해현황은 저장하지 않습니다. 서버로 보내는 저장은 없습니다.</p>' +
+      '<div class="chips"><button class="btn line" id="kForget">최근 기록 지우기</button></div></div>' +
+      '<div class="sec"><p class="small">버전 1단계 시험판 (2026.10.04)</p></div>';
+    open('shSet');
+  }
+  $('hSet').addEventListener('click', openSettings);
+  $('setBody').addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.id === 'kSave') {
+      var v = $('kKey').value.trim();
+      if (v && !/^[0-9a-f]{32}$/i.test(v)) { toast('JavaScript 키는 영문·숫자 32자입니다', 2600); return; }
+      if (v && v === defaultKey()) v = '';   // 기본 키와 같으면 따로 저장하지 않음
+      var had = !!(window.kakao && kakao.maps); lsSet('kakaoKey', v || null); updKeyWarn();
+      toast(v ? '저장했습니다' : (defaultKey() ? '기본 키를 사용합니다' : '키를 지웠습니다'));
+      if (had) setTimeout(function () { location.reload(); }, 600); else back();
+    } else if (t.id === 'kDel') { lsSet('kakaoKey', null); updKeyWarn(); toast(defaultKey() ? '기본 키로 돌아갑니다' : '키를 지웠습니다'); setTimeout(function () { location.reload(); }, 600); }
+    else if (t.id === 'kForget') { lsSet('last', null); renderRecent(); toast('지웠습니다'); }
+  });
+  function updKeyWarn() { $('keyWarn').hidden = !!getKey(); }
+
+  // ── 설치 안내(안드로이드: 설치 창 / 아이폰: 공유 → 홈 화면에 추가) ──
+  var instEv = null;
+  function isApp() { try { return (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true; } catch (e) { return false; } }
+  function renderInstall() {
+    var el = $('inst'); if (isApp() || lsGet('instHide') === '1') { el.hidden = true; return; }
+    if (instEv) el.innerHTML = '<b>홈 화면에 앱으로 설치</b>하면 주소창 없이 바로 열립니다.<div class="chips"><button class="btn pri" id="bInst">설치</button><button class="btn ghost" id="bInstNo">닫기</button></div>';
+    else if (IOS) el.innerHTML = '<b>아이폰 설치:</b> Safari 아래 공유 버튼 → <b>홈 화면에 추가</b>.<div class="chips"><button class="btn ghost" id="bInstNo">닫기</button></div>';
+    else { el.hidden = true; return; }
+    el.hidden = false;
+  }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); instEv = e; renderInstall(); });
+  window.addEventListener('appinstalled', function () { instEv = null; renderInstall(); });
+  $('inst').addEventListener('click', function (e) {
+    if (e.target.id === 'bInst' && instEv) { instEv.prompt(); var d = function () { instEv = null; renderInstall(); }; instEv.userChoice ? instEv.userChoice.then(d, d) : d(); }
+    else if (e.target.id === 'bInstNo') { lsSet('instHide', '1'); renderInstall(); }
+  });
+
+  // ── 자동 업데이트: 새 버전을 받으면 안내 띠 ──
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    navigator.serviceWorker.register('./service-worker.js').catch(function () {});
+    navigator.serviceWorker.addEventListener('message', function (e) {
+      if (e.data && e.data.type === 'ONESTOP_UPDATED') {
+        if (!layers.length && !$('raw').value.trim()) location.reload(); else $('updbar').hidden = false;
+      }
+    });
+  }
+  $('bUpd').addEventListener('click', function () { location.reload(); });
+
+  // ── 시작: 공유(안드로이드)·단축어(아이폰)로 받은 글(?text=) 바로 분석 ──
+  updKeyWarn(); renderRecent(); renderInstall();
+  try {
+    var sp = new URLSearchParams(location.search);
+    var inText = [sp.get('title'), sp.get('text'), sp.get('t'), sp.get('url')].filter(Boolean).join('\n');
+    if (inText) {
+      history.replaceState(null, '', location.pathname);
+      $('raw').value = inText.trim();
+      setTimeout(function () { run(inText, false); }, 0);
+    }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

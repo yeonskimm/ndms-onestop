@@ -23,10 +23,15 @@ window.kakao = { maps: (function () {
     if (/오류주소/.test(q)) return cb([], Status.ERROR);
     cb([{ x: '128.73', y: '35.65', address_type: 'REGION_ADDR', address: { address_name: q.replace('경상북도', '경북').replace('대구광역시', '대구') }, road_address: { address_name: '경북 가상군 가상읍 시험로 12' } }], Status.OK); }, 10); };
   Geocoder.prototype.coord2Address = function (x, y, cb) { cb([], Status.ZERO_RESULT); };
+  Geocoder.prototype.coord2RegionCode = function (x, y, cb) { setTimeout(function () { cb(window.__region || [
+    { region_type: 'B', region_1depth_name: '경상북도', region_2depth_name: '청도군', region_3depth_name: '풍각면', region_4depth_name: '송서리' },
+    { region_type: 'H', region_1depth_name: '경상북도', region_2depth_name: '청도군', region_3depth_name: '풍각면', region_4depth_name: '' }], Status.OK); }, 10); };
   function Places() {}
   Places.prototype.keywordSearch = function (q, cb) { setTimeout(function () {
     if (/없는주소/.test(q)) return cb([], Status.ZERO_RESULT);
     if (/오류주소/.test(q)) return cb([], Status.ERROR);
+    if (q === '119안전센터') return cb([1, 2, 3].map(function (i) { return { id: 'n' + i, place_name: '가상' + i + '119안전센터', phone: '054-000-90' + i + '0', address_name: '경북 가상군', distance: String(i * 1500), place_url: '' }; }), Status.OK);
+    if (/119안전센터|소방서/.test(q)) { var last = q.split(' ').pop(); if (/금천/.test(q)) return cb([], Status.ZERO_RESULT); return cb([{ id: 'f' + last, place_name: (/소방서/.test(last) ? '' : '청도소방서 ') + last, phone: /소방서/.test(last) ? '054-000-1190' : '054-000-1191', address_name: '경북 청도군 풍각면', distance: '2300', place_url: '' }], Status.OK); }
     if (/관리사무소/.test(q)) return cb([{ id: '9', place_name: 'ㅇㅇ아파트 관리사무소', phone: '054-000-1111', address_name: '경북 가상군 가상읍 시험리 123-4', road_address_name: '', distance: '35', category_name: '부동산 > 관리사무소', place_url: 'https://place.map.kakao.com/9' }], Status.OK);
     if (/아파트/.test(q)) return cb([{ id: '8', place_name: 'ㅇㅇ아파트', phone: '', address_name: '경북 가상군 가상읍 시험리 123-4', road_address_name: '', distance: '10', category_name: '부동산 > 아파트', place_url: '' }], Status.OK);
     if (/시험동3가|가상구/.test(q)) return cb([], Status.ZERO_RESULT);

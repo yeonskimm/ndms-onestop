@@ -128,3 +128,37 @@ with sync_playwright() as p:
     assert pg.is_visible('#sDet')
     b.close()
 print('최근 기록 시험 통과')
+
+
+# ── 관할 소방 ──
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    ctx = b.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True,
+                        user_agent='Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36')
+    ctx.route('https://dapi.kakao.com/**', lambda r: r.fulfill(status=200, content_type='application/javascript', body=MOCK))
+    pg = ctx.new_page(); errs2 = []; pg.on('pageerror', lambda e: errs2.append(str(e)))
+    pg.goto((ROOT / 'index.html').as_uri())
+    pg.evaluate("localStorage.setItem('ndms-onestop.kakaoKey','0123456789abcdef0123456789abcdef')"); pg.reload()
+    pg.fill('#raw', A); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bFire'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#fireBody')
+    assert '풍각119안전센터' in t and '청도소방서' in t and '054-000-1191' in t and '054-000-1190' in t, t
+    assert '가상1119안전센터' in t, t
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'fire.png'))
+    pg.go_back(); pg.wait_for_timeout(150)
+    pg.click('#bInfo'); pg.wait_for_timeout(150)
+    assert '관할 소방(관할표 기준): 청도소방서 풍각119안전센터' in pg.inner_text('#repPre')
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    # 금천(카카오에 없음) → 번호 못 찾음 안내, 대구·경북 밖 → 관할표 없음
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'경상북도',region_2depth_name:'청도군',region_3depth_name:'금천면',region_4depth_name:'동곡리'},{region_type:'H',region_1depth_name:'경상북도',region_2depth_name:'청도군',region_3depth_name:'금천면'}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-09 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bFire'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#fireBody'); assert '금천119안전센터' in t and '번호를 찾지 못함' in t, t
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bFire'); pg.wait_for_timeout(500)
+    assert '대구·경북 밖' in pg.inner_text('#fireBody')
+    b.close()
+    assert not errs2, errs2
+print('관할 소방 시험 통과')

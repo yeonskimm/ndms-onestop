@@ -31,7 +31,13 @@ window.kakao = { maps: (function () {
     if (/없는주소/.test(q)) return cb([], Status.ZERO_RESULT);
     if (/오류주소/.test(q)) return cb([], Status.ERROR);
     if (q === '119안전센터') return cb([1, 2, 3].map(function (i) { return { id: 'n' + i, place_name: '가상' + i + '119안전센터', phone: '054-000-90' + i + '0', address_name: '경북 가상군', distance: String(i * 1500), place_url: '' }; }), Status.OK);
-    if (/119안전센터|소방서/.test(q)) { var last = q.split(' ').pop(); if (/금천/.test(q)) return cb([], Status.ZERO_RESULT); return cb([{ id: 'f' + last, place_name: (/소방서/.test(last) ? '' : '청도소방서 ') + last, phone: /소방서/.test(last) ? '054-000-1190' : '054-000-1191', address_name: '경북 청도군 풍각면', distance: '2300', place_url: '' }], Status.OK); }
+    if (/119안전센터|119지역대|119출장소|소방서/.test(q)) {
+      var last = q.split(' ').pop();
+      if (/금천|무태/.test(q)) return cb([], Status.ZERO_RESULT);
+      // 점검 시험용: 주소에 관할 시군구 이름을 모두 넣어 지역 조건을 통과시킴
+      var addr = '경북 청도군 풍각면 (시험: 중구 수성구 동구 북구 군위군 경산시 영천시 청도군)';
+      return cb([{ id: 'f' + last, place_name: (/소방서/.test(last) ? '' : '청도소방서 ') + last, phone: /부계/.test(q) ? '' : (/소방서/.test(last) ? '054-000-1190' : '054-000-1191'), address_name: addr, distance: '2300', place_url: '' }], Status.OK);
+    }
     if (/관리사무소/.test(q)) return cb([{ id: '9', place_name: 'ㅇㅇ아파트 관리사무소', phone: '054-000-1111', address_name: '경북 가상군 가상읍 시험리 123-4', road_address_name: '', distance: '35', category_name: '부동산 > 관리사무소', place_url: 'https://place.map.kakao.com/9' }], Status.OK);
     if (/아파트/.test(q)) return cb([{ id: '8', place_name: 'ㅇㅇ아파트', phone: '', address_name: '경북 가상군 가상읍 시험리 123-4', road_address_name: '', distance: '10', category_name: '부동산 > 아파트', place_url: '' }], Status.OK);
     if (/시험동3가|가상구/.test(q)) return cb([], Status.ZERO_RESULT);

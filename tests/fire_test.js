@@ -76,4 +76,19 @@ assert.strictEqual(kp('금호119안전센터', '경북 영천시 금호읍 1'), 
 assert.strictEqual(kp('중앙119안전센터', '경북 포항시 북구 1'), null);                 // 관할 밖 같은 이름 → 정리표 안 씀
 assert.strictEqual(kp('비산119안전센터', '대구 서구 비산동 1'), null);                 // 정리표에 없음 → 카카오 번호로
 assert.strictEqual(kp('노원119안전센터', ''), null);                                   // 주소 없으면 판단 안 함
+// 시도 119종합상황실
+assert.strictEqual(F.ctrl('대구광역시', '중구').tel, '053-119');
+assert.strictEqual(F.ctrl('경상북도', '청도군').tel, '054-119');
+assert.strictEqual(F.ctrl('대구광역시', '군위군').tel, '053-119');
+assert.ok(F.ctrl('대구광역시', '군위군').note.includes('054'));
+assert.strictEqual(F.ctrl('경상북도', '경산시').tel, '054-119');
+assert.ok(F.ctrl('경상북도', '경산시').note.includes('053'));
+assert.strictEqual(F.ctrl('대구광역시', '수성구').note, '');
+assert.strictEqual(F.ctrl('서울특별시', '중구').tel, '02-119');
+assert.ok(F.ctrl('서울특별시', '중구').note.includes('🔵'));
+assert.strictEqual(F.ctrl('강원특별자치도', '춘천시').tel, '033-119');
+assert.strictEqual(F.ctrl('전북특별자치도', '전주시').tel, '063-119');
+assert.strictEqual(F.ctrl('경상남도', '창원시').tel, '055-119');
+assert.strictEqual(F.ctrl('', ''), null);
+n += 13;
 console.log(`${n}개 통과`);

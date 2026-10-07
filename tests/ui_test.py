@@ -144,6 +144,8 @@ with sync_playwright() as p:
     t = pg.inner_text('#fireBody')
     assert '풍각119안전센터' in t and '청도소방서' in t and '054-000-1191' in t and '054-000-1190' in t, t
     assert '가상1119안전센터' in t, t
+    assert t.index('경북 119종합상황실') < t.index('풍각119안전센터') and '054-119' in t and '053-119' not in t, t
+    assert pg.get_attribute('#fireBody .unit.ctrl a.tel', 'href') == 'tel:054119'
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'fire.png'))
     pg.go_back(); pg.wait_for_timeout(150)
     pg.click('#bInfo'); pg.wait_for_timeout(150)
@@ -158,7 +160,7 @@ with sync_playwright() as p:
     pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bFire'); pg.wait_for_timeout(500)
-    assert '대구·경북 밖' in pg.inner_text('#fireBody')
+    t = pg.inner_text('#fireBody'); assert '대구·경북 밖' in t and '서울 119종합상황실' in t and '02-119' in t, t
     b.close()
     assert not errs2, errs2
 print('관할 소방 시험 통과')

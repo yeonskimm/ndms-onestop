@@ -27,6 +27,8 @@ jobs:
         run: node tests/parser_test.js
       - name: 소방 관할 찾기 (대구·경북 관할표, 리·지번 단위 예외)
         run: node tests/fire_test.js
+      - name: 경찰 관할 찾기 (지구대·파출소 관할표, 일부 관할·지번 경계)
+        run: node tests/police_test.js
       - name: 캐시 삭제 범위 (법ON·오늘의안전·노무길잡이 저장본 보존)
         run: node tests/check_sw_scope.js service-worker.js
       - name: 키 자리표시 (저장소에 실제 키가 들어가지 않았는지)

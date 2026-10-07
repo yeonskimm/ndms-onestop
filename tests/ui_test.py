@@ -25,7 +25,7 @@ with sync_playwright() as p:
     assert pg.is_visible('#keyWarn')
     # 키 없이 분석 → 지도 없음 안내
     pg.fill('#raw', A); pg.click('#bGo'); pg.wait_for_timeout(200)
-    assert pg.is_visible('#sDet'); assert '지도를 띄울 수 없습니다' in pg.inner_text('#mapMsg')
+    assert pg.is_visible('#sDet'); assert '지도 표시 불가' in pg.inner_text('#mapMsg')
     pg.click('#sDet [data-back]'); pg.wait_for_timeout(150)
     assert pg.is_visible('#sIn')
     # 키 넣기
@@ -60,16 +60,16 @@ with sync_playwright() as p:
     assert pg.is_visible('#sIn'), '첫 화면 복귀'
     # 로드뷰 없음
     pg.evaluate('window.__noRv=true'); pg.fill('#raw', A); pg.click('#bGo'); pg.wait_for_timeout(400)
-    assert '로드뷰가 없습니다' in pg.inner_text('#rvMsg') and pg.inner_text('#dist') == '없음'
+    assert '로드뷰 없음' in pg.inner_text('#rvMsg') and pg.inner_text('#dist') == '없음'
     pg.screenshot(path=str(shots / '6_norv.png'))
     pg.click('#sDet [data-back]'); pg.wait_for_timeout(150)
     # 주소 못 찾음
     pg.evaluate('window.__noRv=false'); pg.fill('#raw', A.replace('경상북도 가상군 가상읍 시험리 123-4', '없는주소 1')); pg.click('#bGo'); pg.wait_for_timeout(400)
-    assert '찾지 못했습니다' in pg.inner_text('#mapMsg') and '오류' not in pg.inner_text('#mapMsg')
+    assert '위치 확인 불가' in pg.inner_text('#mapMsg') and '오류' not in pg.inner_text('#mapMsg')
     pg.click('#sDet [data-back]'); pg.wait_for_timeout(150)
     # 카카오 오류(사용량 초과 등)는 주소 문제와 구분해 표시
     pg.fill('#raw', A.replace('경상북도 가상군 가상읍 시험리 123-4','오류주소 1')); pg.click('#bGo'); pg.wait_for_timeout(400)
-    assert '오류를 돌려줬습니다' in pg.inner_text('#mapMsg'), pg.inner_text('#mapMsg')
+    assert '서버 오류' in pg.inner_text('#mapMsg'), pg.inner_text('#mapMsg')
     pg.click('#sDet [data-back]'); pg.wait_for_timeout(150)
     # 최근 기록 표시
     assert pg.is_visible('#recent')
@@ -160,7 +160,7 @@ with sync_playwright() as p:
     pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bFire'); pg.wait_for_timeout(500)
-    t = pg.inner_text('#fireBody'); assert '대구·경북 밖' in t and '서울 119종합상황실' in t and '02-119' in t, t
+    t = pg.inner_text('#fireBody'); assert '대구·경북 외' in t and '서울 119종합상황실' in t and '02-119' in t, t
     b.close()
     assert not errs2, errs2
 print('관할 소방 시험 통과')

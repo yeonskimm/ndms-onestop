@@ -122,7 +122,7 @@ html.indet,html.indet body{height:100%;overflow:hidden}
 .mk.rvm i{left:-8px;top:-8px;width:16px;height:16px;background:#fff;border:4px solid var(--rv);box-shadow:0 2px 6px rgba(0,0,0,.3)}
 
 /* 아래 버튼 줄 */
-.dbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(5,1fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.dbar{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,1fr) repeat(2,1.2fr);background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .dbar button,.dbar a{min-height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:.75rem;font-weight:700;color:var(--ink);text-decoration:none;text-align:center;padding:4px 2px;line-height:1.25}
 .dbar button:active,.dbar a:active{background:#EEF1F4}
 .dbar svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
@@ -215,6 +215,8 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 .dbar .ext{color:var(--hdrsub)}
 .dbar .sep{box-shadow:inset 1px 0 0 rgba(255,255,255,.14)}
 .dbar .lb{display:inline-flex;align-items:center;gap:2px}
+.dbar .lb{white-space:nowrap;letter-spacing:-.02em}
+@media (max-width:380px){.dbar .lb{font-size:.6875rem}}
 .dbar svg.xa{width:10px;height:10px;stroke-width:1.6;opacity:.8}
 /* 아래에서 올라오는 창: 손잡이 */
 .shh::before{content:"";position:absolute;left:50%;top:6px;width:36px;height:4px;margin-left:-18px;border-radius:2px;background:#D3D9E0}
@@ -299,6 +301,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     <button id="bInfo"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>사고정보</button>
     <button id="bBiz"><svg viewBox="0 0 24 24"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg>사업장</button>
     <button id="bFire"><svg viewBox="0 0 24 24"><path d="M12 22c4 0 7-2.8 7-6.8 0-3.5-2.4-5.6-4-7.7-.6 1.9-1.6 3-3 3.5.5-3.3-.7-6.3-3.5-8-.3 3.5-4.5 6.6-4.5 12.2C4 19.2 8 22 12 22z"/></svg>소방</button>
+    <button id="bPol"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.3-2.9 8-7 9.5-4.1-1.5-7-5.2-7-9.5V6z"/><path d="M9 11.5l2.2 2.2L15.5 9.5"/></svg>경찰</button>
     <a id="lKakao" class="ext sep" target="_blank" rel="noopener" aria-label="카카오맵 앱에서 열기"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span class="lb">카카오맵<svg class="xa" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 3 9"/></svg></span></a>
     <a id="lNaver" class="ext" aria-label="네이버지도 앱에서 열기"><svg viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg><span class="lb">네이버지도<svg class="xa" viewBox="0 0 12 12" aria-hidden="true"><path d="M4 2.5h5.5V8M9.5 2.5 3 9"/></svg></span></a>
   </nav>
@@ -318,6 +321,11 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 <div class="sheet" id="shFire" hidden role="dialog" aria-label="관할 소방">
   <div class="shbg" data-back></div>
   <div class="shcard"><div class="shh"><h2>관할 소방</h2><button class="ib" data-back>닫기</button></div><div id="fireBody"></div></div>
+</div>
+<!-- 관할 경찰 -->
+<div class="sheet" id="shPol" hidden role="dialog" aria-label="관할 경찰">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>관할 경찰</h2><button class="ib" data-back>닫기</button></div><div id="polBody"></div></div>
 </div>
 <!-- 관할 번호 점검 -->
 <div class="sheet" id="shCheck" hidden role="dialog" aria-label="관할 번호 점검">
@@ -917,6 +925,192 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 // ===== FIRE-END =====
 </script>
 
+<script id="police">
+// ===== POLICE-START: 지구대·파출소 관할표 + 관할 찾기 (대구청 관할 9개 경찰서) =====
+// 출처: 관할 = 대구경찰청 사전정보공표 '지역경찰 운영(지역경찰관서, 관할, 112순찰차 현황)' 2025년 12월 기준
+//              청도·경산·영천 = 각 경찰서 누리집 '파출소 안내'의 행정구역(확인한 곳만)
+//              나머지 경산·영천 읍면 = 파출소 이름·주소로 추정(inf) 🔵
+//       번호·주소 = 각 경찰서 누리집 '지구대·파출소 안내'(2026.10.07. 확인)
+// 동 이름은 행정동·법정동 어느 쪽과 같아도 맞음(경산 누리집은 둘을 섞어 씀)
+// 규칙 형식: "시군구:행정동,행정동;bd=법정동,법정동;lot=시작-끝;part;inf"
+//   * = 행정동 무관, bd = 그 법정동만, lot = 지번 본번 범위, part = 원문 '일부', inf = 이름으로 추정
+//   행정동 이름에 숫자가 없으면 숫자 붙은 동도 포함(예: '남산동' → 남산1동·남산2동…)
+// 단위 종류: D 지구대, P 파출소, S 치안센터
+// 행 형식: [시도, 경찰서, 이름, 종류, 전화(여러 개면 /), 주소, [관할규칙], 소속(치안센터)]
+(function (root) {
+  'use strict';
+  var SRC = '대구경찰청 사전정보공표 지역경찰 운영(2025.12.)';
+  var TEL_SRC = '경찰서 누리집(2026.10.07. 확인)';
+  var D = [
+    // ── 대구중부경찰서 ──
+    ['대구', '대구중부경찰서', '남산지구대', 'D', '053-420-1304', '대구 중구 달구벌대로 2048', ['중구:남산동', '중구:대봉2동;part']],
+    ['대구', '대구중부경찰서', '서문지구대', 'D', '053-420-1302', '대구 중구 국채보상로99길 12', ['중구:대신동,성내3동', '중구:성내2동;part']],  // 🔵 같은 누리집 전화번호안내에는 420-1305
+    ['대구', '대구중부경찰서', '동덕지구대', 'D', '053-420-1306', '대구 중구 국채보상로140길 16', ['중구:동인동,삼덕동,대봉1동', '중구:대봉2동,성내1동;part', '중구:*;bd=봉산동;part']],
+    ['대구', '대구중부경찰서', '중앙파출소', 'P', '053-420-1311', '대구 중구 중앙대로81길 88', ['중구:성내1동,성내2동']],
+    ['대구', '대구중부경찰서', '동인치안센터', 'S', '053-420-1305', '대구 중구 동덕로 180', [], '동덕지구대'],
+    ['대구', '대구중부경찰서', '대봉치안센터', 'S', '053-420-1303', '대구 중구 명륜로 152', [], '동덕지구대'],
+    ['대구', '대구중부경찰서', '서문시장치안센터', 'S', '053-420-1307', '대구 중구 큰장로28길 12', [], '서문지구대'],
+    ['대구', '대구중부경찰서', '역전치안센터', 'S', '053-420-1309', '대구 중구 종로 101', [], '서문지구대'],
+    ['대구', '대구중부경찰서', '남문치안센터', 'S', '053-420-1301', '대구 중구 명덕로35길 41', [], '남산지구대'],
+    ['대구', '대구중부경찰서', '신남치안센터', 'S', '053-420-1308', '대구 중구 명덕로 95', [], '남산지구대'],
+    // ── 대구동부경찰서 ──
+    ['대구', '대구동부경찰서', '큰고개지구대', 'D', '053-960-3309', '대구 동구 큰고개로 36', ['동구:신암4동,신암5동,효목1동']],
+    ['대구', '대구동부경찰서', '남신암지구대', 'D', '053-960-3304', '대구 동구 대현로 126', ['동구:신천1동,신천2동,신암1동,신암2동,신암3동']],
+    ['대구', '대구동부경찰서', '동대구지구대', 'D', '053-960-3316', '대구 동구 동대구로85길 53', ['동구:신천3동,신천4동,효목2동']],
+    ['대구', '대구동부경찰서', '안심지구대', 'D', '053-960-3314', '대구 동구 반야월로 219', ['동구:안심1동,안심2동', '동구:안심3동,안심4동;part']],  // 원문: 안심3·4동 중 경북(경부?)고속도로 남측, 숙천동 등 일부 제외
+    ['대구', '대구동부경찰서', '동촌지구대', 'D', '053-960-3305', '대구 동구 해동로 184', ['동구:동촌동,방촌동,해안동', '동구:지저동;part', '동구:*;bd=불로동;part']],
+    ['대구', '대구동부경찰서', '봉무불로파출소', 'P', '053-960-3163', '대구 동구 위남로 9', ['동구:도평동,불로봉무동', '동구:지저동;part']],
+    ['대구', '대구동부경찰서', '공산파출소', 'P', '053-960-3302', '대구 동구 파계로 546', ['동구:공산동;bd=지묘동,중대동,송정동,덕곡동,신용동']],
+    ['대구', '대구동부경찰서', '팔공파출소', 'P', '053-960-3301', '대구 동구 팔공로197길 47', ['동구:공산동;bd=백안동,능성동,진인동,용수동,내동,신무동,미곡동,미대동,도학동']],
+    ['대구', '대구동부경찰서', '동내혁신파출소', 'P', '053-960-3706', '대구 동구 동내로 120', ['동구:혁신동']],
+    ['대구', '대구동부경찰서', '용계치안센터', 'S', '053-960-3317', '대구 동구 동촌로 390-1', [], '안심지구대'],
+    // ── 대구북부경찰서 ──
+    ['대구', '대구북부경찰서', '고성지구대', 'D', '053-380-5301', '대구 북구 칠산로 24', ['북구:고성동,칠성동', '북구:침산2동;part']],
+    ['대구', '대구북부경찰서', '노원지구대', 'D', '053-380-5302', '대구 북구 오봉로 122', ['북구:노원동,침산1동,침산2동,침산3동']],
+    ['대구', '대구북부경찰서', '복현지구대', 'D', '053-380-5303', '대구 북구 경진로1길 50', ['북구:복현1동,복현2동,대현동,검단동']],
+    ['대구', '대구북부경찰서', '산격지구대', 'D', '053-380-5304', '대구 북구 연암로 114', ['북구:산격1동,산격2동,산격3동,산격4동']],
+    ['대구', '대구북부경찰서', '칠성치안센터', 'S', '053-380-5301', '대구 북구 칠성로 105', [], '고성지구대'],
+    // ── 대구강북경찰서 ──
+    ['대구', '대구강북경찰서', '강북지구대', 'D', '053-380-3191', '대구 북구 동암로 171', ['북구:국우동,읍내동,관음동', '북구:구암동,동천동;part']],
+    ['대구', '대구강북경찰서', '동천지구대', 'D', '053-380-3192', '대구 북구 구암로 157', ['북구:태전1동,태전2동,동천동', '북구:구암동;part']],
+    ['대구', '대구강북경찰서', '무태파출소', 'P', '053-380-3193', '대구 북구 서변로 62', ['북구:무태조야동']],
+    ['대구', '대구강북경찰서', '관문파출소', 'P', '053-380-3198', '대구 북구 한강로 103', ['북구:관문동']],
+    ['대구', '대구강북경찰서', '칠곡치안센터', 'S', '053-380-3194', '대구 북구 칠곡중앙대로 563', [], '강북지구대'],
+    ['대구', '대구강북경찰서', '태전치안센터', 'S', '053-380-3197', '대구 북구 칠곡중앙대로 274', [], '동천지구대'],
+    // ── 대구수성경찰서 ──
+    ['대구', '대구수성경찰서', '고산지구대', 'D', '053-600-6303', '대구 수성구 고산로 150', ['수성구:고산1동,고산2동,고산3동']],
+    ['대구', '대구수성경찰서', '만촌지구대', 'D', '053-600-6305', '대구 수성구 무열로 111', ['수성구:만촌1동,만촌2동,만촌3동,범어2동']],
+    ['대구', '대구수성경찰서', '범어지구대', 'D', '053-600-6307', '대구 수성구 동대구로 313', ['수성구:범어1동,범어3동,수성1가동,수성2가동,수성3가동,수성2.3가동,수성2·3가동,수성4가동']],
+    ['대구', '대구수성경찰서', '상동지구대', 'D', '053-600-6312', '대구 수성구 들안로 54', ['수성구:상동,중동', '수성구:두산동;lot=1-207']],
+    ['대구', '대구수성경찰서', '지산지구대', 'D', '053-600-6315', '대구 수성구 지범로 155', ['수성구:지산1동,지산2동,범물1동,범물2동', '수성구:두산동;lot=207-999999']],
+    ['대구', '대구수성경찰서', '황금지구대', 'D', '053-600-6318', '대구 수성구 청수로 245', ['수성구:황금1동,황금2동,범어4동']],
+    ['대구', '대구수성경찰서', '파동파출소', 'P', '053-600-6317', '대구 수성구 파동로2길 30', ['수성구:파동']],
+    ['대구', '대구수성경찰서', '고산2치안센터', 'S', '053-600-6302', '대구 수성구 시지로 46', [], '고산지구대'],
+    ['대구', '대구수성경찰서', '만촌1치안센터', 'S', '053-600-6304', '대구 수성구 무열로 196', [], '만촌지구대'],
+    // ── 대구군위경찰서 ──
+    ['대구', '대구군위경찰서', '중앙파출소', 'P', '054-382-0816', '대구 군위군 군위읍 중앙길 73', ['군위군:군위읍,소보면']],
+    ['대구', '대구군위경찰서', '효령파출소', 'P', '054-382-8112', '대구 군위군 효령면 치산효령로 2383', ['군위군:효령면,우보면']],
+    ['대구', '대구군위경찰서', '부계파출소', 'P', '054-382-2112', '대구 군위군 부계면 창평길 29', ['군위군:부계면,산성면']],
+    ['대구', '대구군위경찰서', '의흥파출소', 'P', '054-382-7112', '대구 군위군 의흥면 읍내6길 7', ['군위군:의흥면,삼국유사면']],
+    ['대구', '대구군위경찰서', '소보치안센터', 'S', '054-382-4112', '대구 군위군 소보면 송원3길 12', [], '중앙파출소'],
+    ['대구', '대구군위경찰서', '산성치안센터', 'S', '054-382-3112', '대구 군위군 산성면 화본2길 3', [], '부계파출소'],
+    ['대구', '대구군위경찰서', '우보치안센터', 'S', '054-382-6112', '대구 군위군 우보면 이화길 127', [], '의흥파출소'],  // 🔵 관할표상 우보면은 효령파출소 관할
+    ['대구', '대구군위경찰서', '삼국유사치안센터', 'S', '054-382-1112', '대구 군위군 삼국유사면 삼국유사로 438-7', [], '의흥파출소'],
+    // ── 경산경찰서(누리집 8곳). 행정구역 확인: 서부지구대·자인파출소. 나머지는 이름으로 추정, 동부·중앙파출소 미확보 🔵 ──
+    ['경북', '경산경찰서', '중앙파출소', 'P', '053-816-0112', '경북 경산시 원효로 35', []],
+    ['경북', '경산경찰서', '동부파출소', 'P', '053-801-0112', '경북 경산시 계양로 44', []],
+    ['경북', '경산경찰서', '서부지구대', 'D', '053-811-5112', '경북 경산시 성암로 27', ['경산시:서부1동,중앙동,남부동,남천면,옥산동,옥곡동,사정동,정평동,중산동']],
+    ['경북', '경산경찰서', '하양파출소', 'P', '053-853-2112', '경북 경산시 하양읍 금송로 179', ['경산시:하양읍;inf']],
+    ['경북', '경산경찰서', '진량파출소', 'P', '053-853-0112', '경북 경산시 진량읍 낙산길 6', ['경산시:진량읍;inf']],
+    ['경북', '경산경찰서', '압량파출소', 'P', '053-817-1112', '경북 경산시 압량읍 부적길 50', ['경산시:압량읍;inf']],
+    ['경북', '경산경찰서', '와촌파출소', 'P', '053-852-0112', '경북 경산시 와촌면 금송로 419', ['경산시:와촌면;inf']],
+    ['경북', '경산경찰서', '자인파출소', 'P', '053-856-2112', '경북 경산시 자인면 금학로 8', ['경산시:자인면,용성면,남산면']],
+    // ── 영천경찰서. 행정구역 확인: 화남·임고파출소. 나머지 읍면은 이름으로 추정, 시내 지구대·파출소 미확보 🔵 ──
+    ['경북', '영천경찰서', '중앙파출소', 'P', '054-333-8112', '경북 영천시 최무선로 303', []],
+    ['경북', '영천경찰서', '남부지구대', 'D', '054-334-2104', '경북 영천시 완산동 729-7', []],
+    ['경북', '영천경찰서', '동부지구대', 'D', '054-334-3721/054-334-3722', '경북 영천시 창신2길 13', []],
+    ['경북', '영천경찰서', '금호파출소', 'P', '054-334-0112', '경북 영천시 금호읍 금호로 115', ['영천시:금호읍;inf']],
+    ['경북', '영천경찰서', '청통파출소', 'P', '054-335-1112', '경북 영천시 청통면 금송로 1025', ['영천시:청통면;inf']],
+    ['경북', '영천경찰서', '신녕파출소', 'P', '054-332-9112', '경북 영천시 신녕면 장수로 1691', ['영천시:신녕면;inf']],
+    ['경북', '영천경찰서', '화산파출소', 'P', '054-335-5112', '경북 영천시 화산면 장수로 908', ['영천시:화산면;inf']],
+    ['경북', '영천경찰서', '화남파출소', 'P', '054-337-7212', '경북 영천시 화남면 천문로 1599', ['영천시:화남면,화북면']],
+    ['경북', '영천경찰서', '임고파출소', 'P', '054-335-7112/054-335-1675', '경북 영천시 임고면 포은로 439', ['영천시:임고면,자양면']],
+    ['경북', '영천경찰서', '고경파출소', 'P', '054-336-3112', '경북 영천시 고경면 호국로 1079', ['영천시:고경면;inf']],
+    ['경북', '영천경찰서', '북안파출소', 'P', '054-333-6912/054-331-4886', '경북 영천시 북안면 운북로 2023', ['영천시:북안면;inf']],
+    ['경북', '영천경찰서', '대창파출소', 'P', '054-335-4112', '경북 영천시 대창면 대창리 743-1', ['영천시:대창면;inf']],
+    // ── 청도경찰서(누리집 '행정구역' 표기). 각북면 담당 미확인 🔵 ──
+    ['경북', '청도경찰서', '중앙파출소', 'P', '054-373-3112', '경북 청도군 청도읍 청화로 194', ['청도군:청도읍']],
+    ['경북', '청도경찰서', '화양파출소', 'P', '054-373-4112', '경북 청도군 화양읍 도주관로 142', ['청도군:화양읍']],
+    ['경북', '청도경찰서', '금천파출소', 'P', '054-372-3112', '경북 청도군 금천면 금천로 46', ['청도군:금천면']],
+    ['경북', '청도경찰서', '매전파출소', 'P', '054-372-5112', '경북 청도군 매전면 청려로 3711', ['청도군:매전면']],
+    ['경북', '청도경찰서', '풍각파출소', 'P', '054-372-2112', '경북 청도군 풍각면 헐티로 212', ['청도군:풍각면']],
+    ['경북', '청도경찰서', '이서파출소', 'P', '054-372-4112', '경북 청도군 이서면 학산1길 48', ['청도군:이서면']],
+    ['경북', '청도경찰서', '운문치안센터', 'S', '054-373-7112', '경북 청도군 운문면 청려로 4731', ['청도군:운문면']],
+    ['경북', '청도경찰서', '각남치안센터', 'S', '054-372-6112', '경북 청도군 각남면 각남로 65', ['청도군:각남면']]
+  ];
+
+  // 동 이름 맞추기(소방과 같은 방식): '수성1가동'↔'수성1가', 띄어쓰기·가운뎃점 무시
+  function canon(s) {
+    s = String(s || '').replace(/\s+/g, '').replace(/·/g, '.');
+    s = s.replace(/^(.+?)동(\d+)가$/, '$1$2가').replace(/(\d+)가동$/, '$1가').replace(/로동$/, '로');
+    return s;
+  }
+  function parseRule(str) {
+    var parts = str.split(';'), head = parts[0], i = head.indexOf(':');
+    var r = { g: head.slice(0, i), all: head.slice(i + 1) === '*', d: [] };
+    if (!r.all) r.d = head.slice(i + 1).split(',').map(canon);
+    parts.slice(1).forEach(function (p) {
+      var kv = p.split('='), k = kv[0], v = kv[1];
+      if (k === 'part' || k === 'inf') r[k] = true;
+      else if (k === 'lot') r.lot = v.split('-').map(Number);
+      else if (k === 'bd') r.bd = v.split(',').map(canon);
+    });
+    return r;
+  }
+  function gOf(addr) { return String(addr || '').split(' ')[1] || ''; }
+  var UNITS = D.map(function (x) {
+    var tels = String(x[4]).split('/');
+    return { sido: x[0], station: x[1], name: x[2], type: x[3], tel: tels[0], tels: tels, addr: x[5], g: gOf(x[5]), rules: x[6].map(parseRule), parent: x[7] || '' };
+  });
+  var SIDO = { '대구광역시': '대구', '경상북도': '경북' };
+  // 행정동 맞추기: 규칙에 숫자가 없으면 숫자 붙은 행정동도 같은 동으로 봄(남산동 ↔ 남산1동)
+  function hHit(tok, h) {
+    if (!h) return false;
+    if (tok === h) return true;
+    return !/\d/.test(tok) && h.replace(/\d+동$/, '동') === tok;
+  }
+
+  // where = { r1, r2, b(법정동·읍면), ri, h(행정동), lot }
+  function find(where) {
+    var sido = SIDO[where.r1] || null;
+    if (!sido) return { sido: null, covered: false, matches: [], stations: [] };
+    var b = canon(where.b), h = canon(where.h);
+    var area = UNITS.filter(function (u) { return u.sido === sido && u.g === where.r2; });
+    var covered = area.some(function (u) { return u.rules.length; });
+    var res = [];
+    UNITS.forEach(function (u) {
+      if (u.sido !== sido) return;
+      u.rules.forEach(function (r) {
+        if (r.g !== where.r2) return;
+        var hit = r.all || r.d.some(function (t) { return hHit(t, h); }) || (!!b && r.d.indexOf(b) >= 0);
+        if (!hit) return;
+        if (r.bd && r.bd.indexOf(b) < 0) return;
+        var amb = !!r.part;
+        if (r.lot) {
+          if (where.lot == null) amb = true;
+          else if (where.lot < r.lot[0] || where.lot > r.lot[1]) return;
+          else if (where.lot === r.lot[0] || where.lot === r.lot[1]) amb = true;
+        }
+        var o = res.filter(function (x) { return x.u === u; })[0];
+        if (o) { o.amb = o.amb && amb; o.inf = o.inf && !!r.inf; }
+        else res.push({ u: u, amb: amb, inf: !!r.inf });
+      });
+    });
+    var order = { D: 0, P: 0, S: 1 };
+    res.sort(function (a, c) { return (a.amb - c.amb) || (order[a.u.type] - order[c.u.type]); });
+    var stations = [];
+    (res.length ? res.map(function (o) { return o.u; }) : area).forEach(function (u) { if (stations.indexOf(u.station) < 0) stations.push(u.station); });
+    return { sido: sido, covered: covered, matches: res, boundary: res.length > 1 || res.some(function (o) { return o.amb; }), stations: stations, src: SRC };
+  }
+
+  // 카카오 장소(이름·주소)로 관서 찾기: 같은 이름(중앙파출소 등)이 여러 곳이라 주소의 시군구로 구분
+  function byPlace(placeName, addr) {
+    var sq = function (t) { return String(t || '').replace(/\s+/g, ''); };
+    var pn = sq(placeName), a = sq(addr), c = [];
+    if (!pn || !a) return null;
+    var LONG = { '대구': '대구광역시', '경북': '경상북도' };
+    UNITS.forEach(function (u) { if (pn.indexOf(u.name) >= 0 && (a.indexOf(u.sido) === 0 || a.indexOf(LONG[u.sido]) === 0) && a.indexOf(u.g) >= 0) c.push(u); });
+    var best = Math.max.apply(null, c.map(function (u) { return u.name.length; }).concat([0]));
+    c = c.filter(function (u) { return u.name.length === best; });
+    return c.length === 1 ? c[0] : null;
+  }
+
+  var P = { find: find, canon: canon, UNITS: UNITS, SRC: SRC, TEL_SRC: TEL_SRC, byPlace: byPlace };
+  if (typeof module !== 'undefined' && module.exports) module.exports = P; else root.POLICE = P;
+})(this);
+// ===== POLICE-END =====
+</script>
+
 <script>
 (function () {
   'use strict';
@@ -959,7 +1153,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     $('foot').hidden = !!screen;
     $('hBack').hidden = screen !== 'sList';
     $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '현장바로';
-    ['shInfo', 'shBiz', 'shFire', 'shCheck', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
+    ['shInfo', 'shBiz', 'shFire', 'shPol', 'shCheck', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
     document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
   }
   function open(id) {
@@ -1097,7 +1291,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   }
 
   function openDet(x) {
-    current = x; loc = null; bizCache = null; fireCache = null; fitDone = false; rvPos = null; accPos = null; kakaoErr = false;
+    current = x; loc = null; bizCache = null; fireCache = null; polCache = null; fitDone = false; rvPos = null; accPos = null; kakaoErr = false;
     if (accOv) { accOv.setMap(null); rvOv.setMap(null); line.setMap(null); }   // 이전 사고 표시가 남아 다른 사고로 오인되지 않게
     var my = ++runId;
     $('dAddr').textContent = shortAddr(x.addr.clean) || '사고위치 없음';
@@ -1328,6 +1522,10 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       var fm = fireCache.res.matches.filter(function (o) { return o.u.type === 'C'; })[0] || fireCache.res.matches[0];
       L.push('- 관할 소방(관할표 기준): ' + fm.u.station + ' ' + fm.u.name + (fireCache.res.boundary ? ' (🔵 경계 지역 확인)' : ''));
     }
+    if (polCache && polCache.res && polCache.res.matches.length) {
+      var pr = polCache.res, pm = pr.matches;
+      L.push('- 관할 경찰(관할표 기준): ' + pm[0].u.station + ' ' + (pr.boundary ? pm.map(function (o) { return o.u.name; }).join(' / ') + ' (🔵 경계 지역 확인)' : pm[0].u.name + (pm[0].inf ? ' (🔵 이름으로 추정)' : '')));
+    }
     L.push('- 확인사항: 🔵 확인 결과 입력');
     return L.join('\n');
   }
@@ -1527,6 +1725,59 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       })])).then(function () { if (my === runId && fireCache) fireCache.html = $('fireBody').innerHTML; });
     });
   }
+  // ── 관할 경찰: 지구대·파출소 관할표로 관할을 정하고, 번호는 경찰서 누리집 번호를 그대로 씀 ──
+  var polCache = null;
+  var PTYPE = { D: '지구대', P: '파출소', S: '치안센터' };
+  function polTel(u, p) {
+    var more = u.tels.slice(1), dt = p ? distTxt(p) : '';
+    var other = p && p.phone && u.tels.map(digits).indexOf(digits(p.phone)) < 0 ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
+    return '<a class="btn tel" href="tel:' + digits(u.tel) + '">☎ ' + esc(u.tel) + '</a><span class="small">' + esc(POLICE.TEL_SRC) + (dt ? ' / ' + dt : '') + (more.length ? '<br>다른 번호: ' + esc(more.join(', ')) : '') + other + '</span>';
+  }
+  function renderPolice() {
+    var x = current, el = $('polBody'); if (!x) return;
+    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도)</p></div>';
+    if (!getKey() || !places || !loc) {
+      el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
+      return;
+    }
+    if (polCache && polCache.html) { el.innerHTML = polCache.html; return; }
+    el.innerHTML = '<div class="empty" style="margin-top:14px"><span class="spin"></span>관할 조회 중</div>';
+    var my = runId;
+    fireWhere().then(function (where) {
+      if (my !== runId) return;
+      var res = POLICE.find(where), h = '';
+      polCache = { where: where, res: res };
+      var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
+      if (!res.sido) {
+        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 하단 인근 지구대·파출소 참고</div>';
+      } else if (res.matches.length) {
+        h += '<div class="note" style="margin-top:14px">' + esc(place) + ' 관할' + (res.boundary ? ' <span class="tag amber">' + (res.matches.length > 1 ? '후보 ' + res.matches.length + '곳·' : '') + '확인 필요</span>' : '') + '</div>';
+        res.matches.forEach(function (o) {
+          var tags = '<span class="tag ' + (o.u.type === 'S' ? '' : 'red') + '">' + PTYPE[o.u.type] + '</span>' + (o.amb ? ' <span class="tag amber">일부 관할</span>' : '') + (o.inf ? ' <span class="tag amber">이름으로 추정</span>' : '');
+          h += '<div class="unit"><div class="n">' + esc(o.u.name) + ' ' + tags + '</div><div class="st">' + esc(o.u.station + ' · ' + o.u.addr) + '</div><div class="ph">' + polTel(o.u) + '</div></div>';
+        });
+      } else if (!res.covered) {
+        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 수록 범위(대구청 관할) 밖이라 관할표 없음. 하단 인근 지구대·파출소 참고</div>';
+      } else {
+        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 관할 자료 미확보 지역(' + esc(res.stations.join(', ')) + '). 하단 인근 지구대·파출소 참고 🔵</div>';
+      }
+      h += '<div class="sec"><h2>인근 지구대·파출소(거리순, 참고)</h2><div id="polNear"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
+      var q0 = res.matches[0] ? res.matches[0].u.station + ' ' + res.matches[0].u.name : (res.stations[0] ? res.stations[0] + ' 지구대' : '지구대');
+      h += '<div class="sec"><h2>직접 확인</h2><div class="chips"><a class="btn line" href="' + esc(naverWeb(q0)) + '" data-naver="' + esc(q0) + '">네이버지도: ' + esc(q0) + '</a></div></div>' + foot;
+      el.innerHTML = h;
+      var center = new K.LatLng(loc.lat, loc.lng), opt = { location: center, radius: 15000, sort: kakao.maps.services.SortBy.DISTANCE };
+      Promise.all([kwSearch('지구대', opt), kwSearch('파출소', opt)]).then(function (rs) {
+        var b = $('polNear'); if (!b || my !== runId) return;
+        var all = [], ids = {};
+        rs[0].concat(rs[1]).forEach(function (p) { if (!ids[p.id]) { ids[p.id] = 1; all.push(p); } });
+        all.sort(function (a, c) { return (+a.distance || 0) - (+c.distance || 0); });
+        b.innerHTML = all.length ? all.slice(0, 3).map(function (p) {
+          var u = POLICE.byPlace(p.place_name, p.address_name || p.road_address_name);
+          return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + (u ? polTel(u, p) : telBtn(p, null)) + '</div></div>';
+        }).join('') : '<div class="empty">검색 결과 없음</div>';
+      }).then(function () { if (my === runId && polCache) polCache.html = $('polBody').innerHTML; });
+    });
+  }
   // ── 관할 번호 점검: 관할 소방서·센터를 카카오에서 이름으로 찾아 번호 유무를 표로 ──
   var checkRows = [];
   function placeCheck(name, station) {
@@ -1602,6 +1853,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     copy(lines.join('\n'), only ? '확인 필요 항목 복사 완료' : '전체 결과 복사 완료');
   });
   $('bFire').addEventListener('click', function () { renderFire(); open('shFire'); $('shFire').querySelector('.shcard').scrollTop = 0; });
+  $('bPol').addEventListener('click', function () { renderPolice(); open('shPol'); $('shPol').querySelector('.shcard').scrollTop = 0; });
 
 
   // ── 설정 ──

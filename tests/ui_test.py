@@ -166,6 +166,47 @@ with sync_playwright() as p:
 print('관할 소방 시험 통과')
 
 
+# ── 관할 경찰 ──
+with sync_playwright() as p:
+    b = p.chromium.launch()
+    ctx = b.new_context(viewport={'width': 360, 'height': 780}, is_mobile=True, has_touch=True,
+                        user_agent='Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36')
+    ctx.route('https://dapi.kakao.com/**', lambda r: r.fulfill(status=200, content_type='application/javascript', body=MOCK))
+    pg = ctx.new_page(); errs3 = []; pg.on('pageerror', lambda e: errs3.append(str(e)))
+    pg.goto((ROOT / 'index.html').as_uri())
+    pg.evaluate("localStorage.setItem('ndms-onestop.kakaoKey','0123456789abcdef0123456789abcdef')"); pg.reload()
+    pg.fill('#raw', A); pg.click('#bGo'); pg.wait_for_timeout(500)
+    # 하단 버튼 6개가 한 줄에 들어가고 글자가 넘치지 않음
+    over = pg.evaluate("[...document.querySelectorAll('.dbar > *')].filter(e => e.scrollWidth > e.clientWidth + 1 || e.offsetHeight > 70).map(e => e.textContent)")
+    assert not over, over
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'dbar6.png'))
+    pg.click('#bPol'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#polBody')
+    assert '풍각파출소' in t and '054-372-2112' in t and '청도경찰서' in t, t
+    assert '인근 지구대·파출소' in t and '카카오 등록 번호 상이: 054-000-3112' in t and '가상지구대' in t, t
+    assert t.index('풍각파출소') < t.index('인근 지구대')
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'police.png'), full_page=True)
+    pg.go_back(); pg.wait_for_timeout(150)
+    pg.click('#bInfo'); pg.wait_for_timeout(150)
+    assert '관할 경찰(관할표 기준): 청도경찰서 풍각파출소' in pg.inner_text('#repPre')
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    # 대구 경계 지역(동천동: 동천지구대 전역 + 강북지구대 일부) → 후보 2곳
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'대구광역시',region_2depth_name:'북구',region_3depth_name:'동천동',region_4depth_name:''},{region_type:'H',region_1depth_name:'대구광역시',region_2depth_name:'북구',region_3depth_name:'동천동'}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-11 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bPol'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#polBody'); assert '동천지구대' in t and '강북지구대' in t and '후보 2곳' in t and '일부 관할' in t, t
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'police2.png'), full_page=True)
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    # 관할 자료 없는 동(경산 시내)
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'경상북도',region_2depth_name:'경산시',region_3depth_name:'계양동',region_4depth_name:''},{region_type:'H',region_1depth_name:'경상북도',region_2depth_name:'경산시',region_3depth_name:'동부동'}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-12 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bPol'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#polBody'); assert '관할 자료 미확보' in t and '경산경찰서' in t, t
+    b.close()
+    assert not errs3, errs3
+print('관할 경찰 시험 통과')
+
+
 # ── 관할 번호 점검 (복사 기능 확인을 위해 http 주소로 띄움) ──
 import subprocess, time
 srv = subprocess.Popen(['python3', '-m', 'http.server', '8013'], cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)

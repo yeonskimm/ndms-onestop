@@ -6,13 +6,13 @@
 <meta name="theme-color" content="#1E2935">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="사고현장">
+<meta name="apple-mobile-web-app-title" content="현장바로">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<title>119 사고현장 확인</title>
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>현장바로</title>
 <style>
 :root{
   --bg:#EDF0F3; --card:#FFFFFF; --ink:#17212D; --ink2:#4B5664; --ink3:#7B8592; --line:#D6DBE1;
@@ -180,7 +180,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
 <header class="hdr" id="hdr">
   <div class="hin">
     <button class="back" id="hBack" data-back hidden>‹ 뒤로</button>
-    <h1 id="hTitle">119 사고현장 확인</h1>
+    <h1 id="hTitle">현장바로</h1>
     <button class="ib" id="hSet" aria-label="설정">설정</button>
   </div>
 </header>
@@ -816,9 +816,27 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
   var SITU = { '대구중부소방서': '053-601-4591|상황실 당직실, 지도 검색 결과 🔵' };
   function knownFull(station, name) { var v = KNOWN[station + '|' + (name || '')] || ''; var i = v.indexOf('|'); return { tel: i < 0 ? v : v.slice(0, i), note: i < 0 ? '' : v.slice(i + 1) }; }
   function known(station, name) { return knownFull(station, name).tel; }
+  // 카카오 장소(이름·주소)로 정리표 번호 찾기: 같은 이름 센터(금호·중앙 등)가 여러 소방서에 있으므로 주소의 시도·시군구로 구분
+  function stationSido(st) { for (var i = 0; i < UNITS.length; i++) if (UNITS[i].station === st) return UNITS[i].sido; return ''; }
+  function knownByPlace(placeName, addr) {
+    var sq = function (t) { return String(t || '').replace(/\s+/g, ''); };
+    var pn = sq(placeName), a = String(addr || ''), cands = [], best = 0;
+    if (!pn || !a) return null;
+    Object.keys(KNOWN).forEach(function (k) {
+      var i = k.indexOf('|'), st = k.slice(0, i), ce = k.slice(i + 1);
+      if (!ce || pn.indexOf(sq(ce)) < 0) return;
+      var sido = stationSido(st);
+      if (!sido || a.indexOf(sido) !== 0) return;
+      if (!areasOf(st).some(function (g) { return a.indexOf(' ' + g) >= 0; })) return;
+      cands.push({ st: st, ce: ce }); if (ce.length > best) best = ce.length;
+    });
+    cands = cands.filter(function (c) { return c.ce.length === best; });
+    if (cands.length !== 1) return null;
+    var r = knownFull(cands[0].st, cands[0].ce); r.station = cands[0].st; return r;
+  }
   function situ(station) { var v = SITU[station] || ''; var i = v.indexOf('|'); return { tel: i < 0 ? v : v.slice(0, i), note: i < 0 ? '' : v.slice(i + 1) }; }
 
-  var F = { find: find, canon: canon, UNITS: UNITS, SRC: SRC, JUR: JUR, inJur: inJur, jurUnits: jurUnits, jurStations: jurStations, areasOf: areasOf, known: known, knownFull: knownFull, situ: situ, KNOWN_SRC: KNOWN_SRC, SITU: SITU };
+  var F = { find: find, canon: canon, UNITS: UNITS, SRC: SRC, JUR: JUR, inJur: inJur, jurUnits: jurUnits, jurStations: jurStations, areasOf: areasOf, known: known, knownFull: knownFull, knownByPlace: knownByPlace, situ: situ, KNOWN_SRC: KNOWN_SRC, SITU: SITU };
   if (typeof module !== 'undefined' && module.exports) module.exports = F; else root.FIRE = F;
 })(this);
 // ===== FIRE-END =====
@@ -863,7 +881,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     document.documentElement.classList.toggle('indet', screen === 'sDet');
     $('foot').hidden = !!screen;
     $('hBack').hidden = screen !== 'sList';
-    $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '119 사고현장 확인';
+    $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '현장바로';
     ['shInfo', 'shBiz', 'shFire', 'shCheck', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
     document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
   }
@@ -1361,15 +1379,17 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
     return next();
   }
   function digits(t) { return String(t || '').replace(/\D/g, ''); }
+  function distTxt(p) { var d = Math.round(+(p && p.distance) || 0); return d ? '사고지점에서 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') : ''; }
   function telBtn(p, kn) {
     if (kn && kn.tel) {
+      var dt = distTxt(p);
       var other = p && p.phone && digits(p.phone) !== digits(kn.tel) ? '<br>카카오 등록 번호는 다름: ' + esc(p.phone) : '';
-      return '<a class="btn tel" href="tel:' + digits(kn.tel) + '">☎ ' + esc(kn.tel) + '</a><span class="small">' + esc(FIRE.KNOWN_SRC) + (kn.note ? '<br>' + esc(kn.note) : '') + other + '</span>';
+      return '<a class="btn tel" href="tel:' + digits(kn.tel) + '">☎ ' + esc(kn.tel) + '</a><span class="small">' + esc(FIRE.KNOWN_SRC) + (dt ? ' / ' + dt : '') + (kn.note ? '<br>' + esc(kn.note) : '') + other + '</span>';
     }
     if (!p) return '<span class="btn ghost" aria-disabled="true">카카오 지도에서 번호를 찾지 못함</span><span class="small">아래 \'직접 확인\'으로 검색하세요</span>';
-    var tel = (p.phone || '').replace(/[^\d-]/g, ''), d = Math.round(+p.distance || 0);
+    var tel = (p.phone || '').replace(/[^\d-]/g, ''), dt = distTxt(p);
     return (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' : '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>') +
-      '<span class="small">카카오 등록: ' + esc(p.place_name) + (d ? ' / 사고지점에서 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') : '') + '</span>';
+      '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '</span>';
   }
   function unitHTML(id, title, tags, sub) {
     return '<div class="unit"><div class="n">' + esc(title) + ' ' + tags + '</div>' + (sub ? '<div class="st">' + esc(sub) + '</div>' : '') +
@@ -1377,7 +1397,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
   }
   function renderFire() {
     var x = current, el = $('fireBody'); if (!x) return;
-    var foot = '<div class="sec"><p class="small">관할은 공식 관할표 기준입니다. 실제 출동한 센터는 관할과 다를 수 있습니다. 전화번호는 카카오 지도 등록 정보라 정확하지 않을 수 있습니다(🔵 확인 필요).<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
+    var foot = '<div class="sec"><p class="small">관할은 공식 관할표 기준입니다. 실제 출동한 센터는 관할과 다를 수 있습니다. 전화번호는 연락처 정리표(2026.10.07.)를 먼저 쓰고, 없으면 카카오 지도 등록 정보를 씁니다(카카오 번호는 🔵 확인 필요).<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
     if (!getKey() || !places || !loc) {
       el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키가 없어 관할을 찾을 수 없습니다.' : '사고 위치를 확인하지 못해 관할을 찾을 수 없습니다.') + '</div>' + foot;
       return;
@@ -1418,7 +1438,7 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
         return placeFor(j[1], j[2]).then(function (p) { var b = $(j[0]); if (b && my === runId) b.innerHTML = telBtn(p, j[3]); });
       }).concat([kwSearch('119안전센터', { location: center, radius: 15000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
         var b = $('fireNear'); if (!b || my !== runId) return;
-        b.innerHTML = r.length ? r.slice(0, 3).map(function (p) { return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + telBtn(p) + '</div></div>'; }).join('') : '<div class="empty">찾은 곳이 없습니다.</div>';
+        b.innerHTML = r.length ? r.slice(0, 3).map(function (p) { return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + telBtn(p, FIRE.knownByPlace(p.place_name, p.address_name || p.road_address_name)) + '</div></div>'; }).join('') : '<div class="empty">찾은 곳이 없습니다.</div>';
       })])).then(function () { if (my === runId && fireCache) fireCache.html = $('fireBody').innerHTML; });
     });
   }

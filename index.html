@@ -327,11 +327,6 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   <div class="shbg" data-back></div>
   <div class="shcard"><div class="shh"><h2>관할 경찰</h2><button class="ib" data-back>닫기</button></div><div id="polBody"></div></div>
 </div>
-<!-- 관할 번호 점검 -->
-<div class="sheet" id="shCheck" hidden role="dialog" aria-label="관할 번호 점검">
-  <div class="shbg" data-back></div>
-  <div class="shcard"><div class="shh"><h2>관할 번호 점검</h2><button class="ib" data-back>닫기</button></div><div id="checkBody"></div></div>
-</div>
 <!-- 설정 -->
 <div class="sheet" id="shSet" hidden role="dialog" aria-label="설정">
   <div class="shbg" data-back></div>
@@ -1153,7 +1148,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     $('foot').hidden = !!screen;
     $('hBack').hidden = screen !== 'sList';
     $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '현장바로';
-    ['shInfo', 'shBiz', 'shFire', 'shPol', 'shCheck', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
+    ['shInfo', 'shBiz', 'shFire', 'shPol', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
     document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
   }
   function open(id) {
@@ -1733,6 +1728,12 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var other = p && p.phone && u.tels.map(digits).indexOf(digits(p.phone)) < 0 ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
     return '<a class="btn tel" href="tel:' + digits(u.tel) + '">☎ ' + esc(u.tel) + '</a><span class="small">' + esc(POLICE.TEL_SRC) + (dt ? ' / ' + dt : '') + (more.length ? '<br>다른 번호: ' + esc(more.join(', ')) : '') + other + '</span>';
   }
+  // 카카오 '지구대'·'파출소' 검색에 119안전센터·지역대 등 소방 시설이 섞여 나오므로 이름·분류로 거름
+  function isPolicePlace(p) {
+    var n = p.place_name || '', c = p.category_name || '';
+    if (/119|소방|안전센터|지역대|구급대|구조대/.test(n) || /소방/.test(c)) return false;
+    return /(지구대|파출소)/.test(n);
+  }
   function renderPolice() {
     var x = current, el = $('polBody'); if (!x) return;
     var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도)</p></div>';
@@ -1769,7 +1770,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       Promise.all([kwSearch('지구대', opt), kwSearch('파출소', opt)]).then(function (rs) {
         var b = $('polNear'); if (!b || my !== runId) return;
         var all = [], ids = {};
-        rs[0].concat(rs[1]).forEach(function (p) { if (!ids[p.id]) { ids[p.id] = 1; all.push(p); } });
+        rs[0].concat(rs[1]).forEach(function (p) { if (!ids[p.id] && isPolicePlace(p)) { ids[p.id] = 1; all.push(p); } });
         all.sort(function (a, c) { return (+a.distance || 0) - (+c.distance || 0); });
         b.innerHTML = all.length ? all.slice(0, 3).map(function (p) {
           var u = POLICE.byPlace(p.place_name, p.address_name || p.road_address_name);
@@ -1778,85 +1779,12 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       }).then(function () { if (my === runId && polCache) polCache.html = $('polBody').innerHTML; });
     });
   }
-  // ── 관할 번호 점검: 관할 소방서·센터를 카카오에서 이름으로 찾아 번호 유무를 표로 ──
-  var checkRows = [];
-  function placeCheck(name, station) {
-    var core = nm(name).replace(/^대구(?=.+소방서$)/, ''), core2 = core.replace(/119/g, '');
-    var areas = FIRE.areasOf(station || name).map(nm);
-    var qs = station ? [station + ' ' + name, name] : [name], i = 0;
-    function ok(p) {
-      var pn = nm(p.place_name), ad = nm(p.address_name) + nm(p.road_address_name);
-      var nameHit = pn.indexOf(core) >= 0 || pn.replace(/119/g, '').indexOf(core2) >= 0;
-      var areaHit = !areas.length || areas.some(function (g) { return ad.indexOf(g) >= 0; });
-      return nameHit && areaHit;
-    }
-    function next() {
-      if (i >= qs.length) return Promise.resolve(null);
-      return kwSearch(qs[i++], { size: 15 }).then(function (r) { return r.filter(ok)[0] || next(); });
-    }
-    return next();
-  }
-  function startCheck() {
-    if (!getKey()) { toast('카카오 지도 키 미등록', 2400); return; }
-    open('shCheck');
-    var el = $('checkBody');
-    el.innerHTML = '<div class="empty" style="margin-top:14px"><span class="spin"></span>카카오 지도 불러오는 중</div>';
-    loadKakao().then(function () {
-      initMaps();
-      var list = [];
-      FIRE.jurStations().forEach(function (st) {
-        list.push({ station: st, name: '', label: st });
-        FIRE.jurUnits().filter(function (u) { return u.station === st; }).sort(function (a, b) { return ({ C: 0, O: 1, J: 2, T: 3 })[a.type] - ({ C: 0, O: 1, J: 2, T: 3 })[b.type]; }).forEach(function (u) { list.push({ station: st, name: u.name, label: u.name, type: u.type }); });
-      });
-      checkRows = list; var done = 0, idx = 0;
-      function paintCheck() {
-        var c = { ok: 0, nophone: 0, miss: 0 };
-        list.forEach(function (r) { if (r.state) c[r.state]++; });
-        var h = '<div class="note" style="margin-top:14px">' + (done < list.length ? '<span class="spin"></span>' : '') + '점검 ' + done + '/' + list.length +
-          ' — 번호 찾음 <b>' + c.ok + '</b>, 번호 없음 <b>' + c.nophone + '</b>, 못 찾음 <b>' + c.miss + '</b></div>';
-        if (done === list.length) h += '<div class="chips"><button class="btn pri" data-ck="all">결과 전체 복사</button><button class="btn line" data-ck="miss">확인 필요 항목만 복사</button></div>';
-        var cur = '';
-        list.forEach(function (r) {
-          if (r.station !== cur) { cur = r.station; h += '<div class="sec"><h2>' + esc(cur) + '</h2></div>'; }
-          var kn = FIRE.known(r.station, r.name);
-          var st = !r.state ? '<span class="small">대기</span>' :
-            r.state === 'ok' ? '<span class="tag green">찾음</span> ' + esc(r.place.phone) :
-            r.state === 'nophone' ? '<span class="tag amber">번호 없음</span> ' + esc(r.place.place_name) :
-            '<span class="tag red">못 찾음</span>';
-          var cmp = kn ? (r.state === 'ok' ? (digits(kn) === digits(r.place.phone) ? ' <span class="tag green">확인 번호와 같음</span>' : ' <span class="tag amber">확인 번호 ' + esc(kn) + '와 다름</span>') : ' <span class="small">확인 번호 ' + esc(kn) + '</span>') : '';
-          var nav = r.state && r.state !== 'ok' ? ' <a class="small" href="' + esc(naverWeb(r.station + ' ' + r.name)) + '" data-naver="' + esc((r.name ? r.station + ' ' + r.name : r.station)) + '">네이버에서 찾기</a>' : '';
-          h += '<div class="unit" style="padding:9px 12px"><div class="n" style="font-size:.9375rem">' + esc(r.name ? r.label : r.station + '(본서)') + (r.type === 'J' ? ' <span class="tag">지역대</span>' : r.type === 'O' ? ' <span class="tag">출장소</span>' : r.type === 'T' ? ' <span class="tag">전담대</span>' : '') + '</div><div class="st">' + st + cmp + nav + '</div></div>';
-        });
-        el.innerHTML = h;
-      }
-      paintCheck();
-      function worker() {
-        if (idx >= list.length || $('shCheck').hidden) return Promise.resolve();
-        var r = list[idx++];
-        return placeCheck(r.name || r.station, r.name ? r.station : null).then(function (p) {
-          r.place = p; r.state = !p ? 'miss' : (p.phone ? 'ok' : 'nophone'); done++; paintCheck();
-        }).then(worker);
-      }
-      return Promise.all([worker(), worker(), worker()]);
-    }).catch(function () { el.innerHTML = '<div class="empty" style="margin-top:14px">카카오 지도 불러오기 실패</div>'; });
-  }
-  $('checkBody').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-ck]'); if (!b) return;
-    var only = b.getAttribute('data-ck') === 'miss';
-    var lines = ['소방서\t구분\t이름\t카카오 결과\t카카오 번호\t확인된 번호\t비고'];
-    checkRows.forEach(function (r) {
-      var kn = FIRE.known(r.station, r.name), kp = r.place && r.place.phone || '';
-      var diff = kn && kp && digits(kn) !== digits(kp);
-      if (only && r.state === 'ok' && !diff) return;
-      lines.push([r.station, r.name ? ({ C: '안전센터', J: '지역대', O: '출장소', T: '전담대' })[r.type] : '소방서', r.name || '(본서)', { ok: '찾음', nophone: '번호 없음', miss: '못 찾음' }[r.state] || '미점검', kp, kn, diff ? '번호 다름' : ''].join('\t'));
-    });
-    copy(lines.join('\n'), only ? '확인 필요 항목 복사 완료' : '전체 결과 복사 완료');
-  });
   $('bFire').addEventListener('click', function () { renderFire(); open('shFire'); $('shFire').querySelector('.shcard').scrollTop = 0; });
   $('bPol').addEventListener('click', function () { renderPolice(); open('shPol'); $('shPol').querySelector('.shcard').scrollTop = 0; });
 
 
   // ── 설정 ──
+  var APP_UPDATED = '2026.10.07.';   // 배포할 때마다 날짜만 고침
   function openSettings() {
     var k = ownKey(), d = defaultKey();
     var state = k ? '<span class="tag blue">개인 키 사용 중</span>' : d ? '<span class="tag green">기본 키 사용 중</span> 별도 입력 불필요' : '<span class="tag amber">키 없음</span> 지도 사용 시 키 등록 필요';
@@ -1868,10 +1796,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       '<div class="pre">' + esc(location.origin) + '</div>' +
       '<div class="chips"><button class="btn pri" id="kSave">저장</button>' + (k ? '<button class="btn ghost" id="kDel">' + (d ? '개인 키 지우기(기본 키로)' : '키 지우기') + '</button>' : '') + '</div>' +
       '<div class="sec"><h2>홈 화면 앱</h2>' + installInfo() + '</div>' +
-      '<div class="sec"><h2>관할 번호 점검</h2><p class="small">대구청 관할(대구 중구·수성구·동구·북구·군위군, 경산·영천·청도) 소방서·안전센터·지역대의 카카오 지도 등록 번호 일괄 조회. 1회 실행 시 카카오 검색 약 60~120회 사용</p><div class="chips"><button class="btn line" id="kCheck">점검 시작</button></div></div>' +
-      '<div class="sec"><h2>단말기 저장 정보</h2><p class="small">개인 카카오 키(등록 시), 최근 확인 사고의 일시·유형·위치·사업장명(24시간 경과 시 미표시). 사고내용·피해현황은 저장하지 않으며 서버 전송 없음</p>' +
-      '<div class="chips"><button class="btn line" id="kForget">최근 기록 지우기</button></div></div>' +
-      '<div class="sec"><p class="small">현장바로 1단계 시험판 (2026.10.07)</p></div>';
+      '<div class="sec"><p class="small">최종 업데이트 ' + APP_UPDATED + '<br>제작 연쓰</p></div>';
     open('shSet');
   }
   $('hSet').addEventListener('click', openSettings);
@@ -1885,8 +1810,6 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       toast(v ? '저장 완료' : (defaultKey() ? '기본 키 사용' : '키 삭제 완료'));
       if (had) setTimeout(function () { location.reload(); }, 600); else back();
     } else if (t.id === 'kDel') { lsSet('kakaoKey', null); updKeyWarn(); toast(defaultKey() ? '기본 키로 전환' : '키 삭제 완료'); setTimeout(function () { location.reload(); }, 600); }
-    else if (t.id === 'kForget') { lsSet('last', null); renderRecent(); toast('삭제 완료'); }
-    else if (t.id === 'kCheck') { back(); setTimeout(startCheck, HIST ? 120 : 0); }
     else if (t.id === 'bInst2') doInstall();
   });
   function updKeyWarn() { $('keyWarn').hidden = !!getKey(); }

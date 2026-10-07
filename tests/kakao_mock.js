@@ -31,7 +31,9 @@ window.kakao = { maps: (function () {
     if (/없는주소/.test(q)) return cb([], Status.ZERO_RESULT);
     if (/오류주소/.test(q)) return cb([], Status.ERROR);
     if (q === '119안전센터') return cb([1, 2, 3].map(function (i) { return { id: 'n' + i, place_name: '가상' + i + '119안전센터', phone: '054-000-90' + i + '0', address_name: '경북 가상군', distance: String(i * 1500), place_url: '' }; }), Status.OK);
-    if (q === '지구대') return cb([{ id: 'p1', place_name: '청도경찰서 가상지구대', phone: '054-000-2112', address_name: '경북 청도군 가상면', distance: '3200', place_url: '' }], Status.OK);
+    // 실제 카카오처럼 소방 시설이 섞여 나오는 경우(걸러져야 함)
+    if (q === '지구대') return cb([{ id: 'p1', place_name: '청도경찰서 가상지구대', phone: '054-000-2112', address_name: '경북 청도군 가상면', distance: '3200', place_url: '' },
+      { id: 'f9', place_name: '가상119안전센터', phone: '', address_name: '경북 청도군 가상면', distance: '1200', category_name: '사회,공공기관 > 행정기관 > 소방서 > 119안전센터', place_url: '' }], Status.OK);
     if (q === '파출소') return cb([{ id: 'p2', place_name: '청도경찰서 풍각파출소', phone: '054-000-3112', address_name: '경북 청도군 풍각면 송서리', distance: '900', place_url: '' }], Status.OK);
     if (/119안전센터|119지역대|119출장소|소방서/.test(q)) {
       var last = q.split(' ').pop();

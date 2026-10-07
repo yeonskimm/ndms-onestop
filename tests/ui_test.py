@@ -185,6 +185,7 @@ with sync_playwright() as p:
     assert '풍각파출소' in t and '054-372-2112' in t and '청도경찰서' in t, t
     assert '인근 지구대·파출소' in t and '카카오 등록 번호 상이: 054-000-3112' in t and '가상지구대' in t, t
     assert t.index('풍각파출소') < t.index('인근 지구대')
+    assert '가상119안전센터' not in t, '경찰 목록에 소방 시설 섞임'
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'police.png'), full_page=True)
     pg.go_back(); pg.wait_for_timeout(150)
     pg.click('#bInfo'); pg.wait_for_timeout(150)
@@ -205,32 +206,3 @@ with sync_playwright() as p:
     b.close()
     assert not errs3, errs3
 print('관할 경찰 시험 통과')
-
-
-# ── 관할 번호 점검 (복사 기능 확인을 위해 http 주소로 띄움) ──
-import subprocess, time
-srv = subprocess.Popen(['python3', '-m', 'http.server', '8013'], cwd=str(ROOT), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL); time.sleep(1)
-with sync_playwright() as p:
-    b = p.chromium.launch()
-    ctx = b.new_context(viewport={'width': 390, 'height': 844}, is_mobile=True, has_touch=True,
-                        user_agent='Mozilla/5.0 (Linux; Android 14; SM-S921N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36',
-                        permissions=['clipboard-read', 'clipboard-write'])
-    ctx.route('https://dapi.kakao.com/**', lambda r: r.fulfill(status=200, content_type='application/javascript', body=MOCK))
-    pg = ctx.new_page(); errs3 = []; pg.on('pageerror', lambda e: errs3.append(str(e)))
-    pg.goto('http://localhost:8013/index.html')
-    pg.evaluate("localStorage.setItem('ndms-onestop.kakaoKey','0123456789abcdef0123456789abcdef')"); pg.reload()
-    pg.click('#hSet'); pg.wait_for_timeout(150); pg.click('#kCheck'); pg.wait_for_timeout(2500)
-    t = pg.inner_text('#checkBody')
-    assert '점검 62/62' in t, t[:300]   # 소보119전담대 추가(연락처 정리표)
-    assert '못 찾음 2' in t and '번호 없음 1' in t, t[:300]
-    assert '확인 번호 053-601-4571와 다름' in t, '확인 번호 비교'
-    pg.screenshot(path=str(ROOT.parent / 'shots' / 'check.png'), full_page=False)
-    pg.click('[data-ck=miss]'); pg.wait_for_timeout(200)
-    clip = pg.evaluate('navigator.clipboard.readText()')
-    assert '무태119안전센터\t못 찾음' in clip and '부계119지역대\t번호 없음' in clip and '번호 다름' in clip, clip[:400]
-    # 뒤로가기로 닫힘
-    pg.go_back(); pg.wait_for_timeout(150); assert not pg.is_visible('#shCheck')
-    b.close()
-    assert not errs3, errs3
-srv.terminate()
-print('관할 번호 점검 시험 통과')

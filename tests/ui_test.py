@@ -149,11 +149,11 @@ with sync_playwright() as p:
     pg.click('#bInfo'); pg.wait_for_timeout(150)
     assert '관할 소방(관할표 기준): 청도소방서 풍각119안전센터' in pg.inner_text('#repPre')
     pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
-    # 금천(카카오에 없음) → 번호 못 찾음 안내, 대구·경북 밖 → 관할표 없음
+    # 금천(카카오에 없음) → 연락처 정리표 번호로 표시, 대구·경북 밖 → 관할표 없음
     pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'경상북도',region_2depth_name:'청도군',region_3depth_name:'금천면',region_4depth_name:'동곡리'},{region_type:'H',region_1depth_name:'경상북도',region_2depth_name:'청도군',region_3depth_name:'금천면'}]""")
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-09 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bFire'); pg.wait_for_timeout(500)
-    t = pg.inner_text('#fireBody'); assert '금천119안전센터' in t and '번호를 찾지 못함' in t, t
+    t = pg.inner_text('#fireBody'); assert '금천119안전센터' in t and '054-372-3119' in t and '정리표' in t, t
     pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
     pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
@@ -178,7 +178,7 @@ with sync_playwright() as p:
     pg.evaluate("localStorage.setItem('ndms-onestop.kakaoKey','0123456789abcdef0123456789abcdef')"); pg.reload()
     pg.click('#hSet'); pg.wait_for_timeout(150); pg.click('#kCheck'); pg.wait_for_timeout(2500)
     t = pg.inner_text('#checkBody')
-    assert '점검 61/61' in t, t[:300]
+    assert '점검 62/62' in t, t[:300]   # 소보119전담대 추가(연락처 정리표)
     assert '못 찾음 2' in t and '번호 없음 1' in t, t[:300]
     assert '확인 번호 053-601-4571와 다름' in t, '확인 번호 비교'
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'check.png'), full_page=False)

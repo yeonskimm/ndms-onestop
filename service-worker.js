@@ -5,7 +5,7 @@
 // - 카카오 지도 등 다른 주소 요청은 건드리지 않음(지도는 인터넷 연결 필요)
 // - 캐시 저장소는 yeonskimm.github.io 단위로 법ON(lawon-)·오늘의안전(onul-safety-)·노무길잡이(nomugil-)와 공유 → 삭제는 반드시 내 접두어(ndms-onestop-)만
 // 이 파일·아이콘·manifest를 바꿀 때만 CACHE_NAME 숫자를 올림
-const CACHE_NAME = 'ndms-onestop-v5';
+const CACHE_NAME = 'ndms-onestop-v6';
 const MY_CACHE = k => k.startsWith('ndms-onestop-');
 const PAGE_KEY = './index.html';
 const ASSETS = ['./manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './icon-180.png'];
@@ -26,7 +26,7 @@ self.addEventListener('activate', event => {
 });
 
 const tagOf = r => r ? (r.headers.get('ETag') || r.headers.get('Last-Modified') || '') : '';
-const offline = () => new Response('오프라인 상태입니다. 인터넷에 연결한 뒤 다시 열어 주세요.', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+const offline = () => new Response('오프라인 상태 — 인터넷 연결 후 다시 실행', { status: 503, headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
 const notifyUpdated = () => self.clients.matchAll({ type: 'window' }).then(cs => cs.forEach(c => c.postMessage({ type: 'ONESTOP_UPDATED' })));
 
 self.addEventListener('fetch', event => {

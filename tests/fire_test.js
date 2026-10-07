@@ -67,4 +67,13 @@ const cnt = { C: 0, J: 0, O: 0 }; F.UNITS.forEach(u => cnt[u.type]++);
 console.log('단위 수', cnt);
 assert.strictEqual(F.UNITS.filter(u => u.sido === '경북' && u.type === 'C').length, 105);  // 경북 소방기구 현황표의 119안전센터(105)와 일치해야 함
   assert.strictEqual(new Set(F.UNITS.filter(u => u.sido === '경북').map(u => u.station)).size, 22);
+// 가까운 센터 목록: 카카오 장소 이름·주소로 정리표 번호 찾기 (같은 이름은 주소로 구분)
+const kp = (name, addr) => { const r = F.knownByPlace(name, addr); n++; return r && r.tel; };
+assert.strictEqual(kp('노원119안전센터', '대구 북구 노원동3가 176-4'), '053-350-5750');
+assert.strictEqual(kp('대구북부소방서 노원119안전센터', '대구 북구 노원동3가 176-4'), '053-350-5750');
+assert.strictEqual(kp('금호119안전센터', '대구 북구 팔달동 1'), '053-607-5970');      // 대구강북 금호
+assert.strictEqual(kp('금호119안전센터', '경북 영천시 금호읍 1'), '054-334-0119');    // 영천 금호
+assert.strictEqual(kp('중앙119안전센터', '경북 포항시 북구 1'), null);                 // 관할 밖 같은 이름 → 정리표 안 씀
+assert.strictEqual(kp('비산119안전센터', '대구 서구 비산동 1'), null);                 // 정리표에 없음 → 카카오 번호로
+assert.strictEqual(kp('노원119안전센터', ''), null);                                   // 주소 없으면 판단 안 함
 console.log(`${n}개 통과`);

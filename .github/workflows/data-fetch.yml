@@ -1,0 +1,23 @@
+# 공공데이터 원본 받기(자료 수집용, 배포와 무관). data-fetch 가지에 올릴 때만 실행
+name: 자료 받기
+on:
+  push:
+    branches: [data-fetch]
+permissions:
+  contents: write
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: 받기
+        run: |
+          mkdir -p out
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/128.0 Safari/537.36'
+          get() { echo "$1" >> out/list.txt; curl -sSL -m 25 -A "$UA" -o "out/$1" -w "$1 %{http_code} %{size_download}\n" "$2" >> out/list.txt 2>&1 || echo "$1 FAIL" >> out/list.txt; }
+          python3 .github/fetch/crawl.py gbpolice.go.kr https://www.gbpolice.go.kr/gbpolice/index.do out/gb 300 https://www.gbpolice.go.kr/gbpolice/info/policelist.do || true
+          ls -laR out > out/report.txt 2>&1
+          cd out && git init -q && git checkout -q -b data-out && git add -A
+          git -c user.name=bot -c user.email=bot@users.noreply.github.com commit -q -m out
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" data-out

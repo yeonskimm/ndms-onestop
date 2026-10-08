@@ -197,7 +197,7 @@ with sync_playwright() as p:
     pg.click('#bPol'); pg.wait_for_timeout(500)
     t = pg.inner_text('#polBody')
     assert '풍각파출소' in t and '054-372-2112' in t and '청도경찰서' in t, t
-    assert '경북 112치안종합상황실' in t and pg.get_attribute('#polBody .unit.ctrl a.tel', 'href') == 'tel:054112', t
+    assert '112치안종합상황실' not in t, t
     assert '인근 지구대·파출소' in t and '카카오 등록 번호 상이: 054-000-3112' in t and '가상지구대' in t, t
     assert t.index('풍각파출소') < t.index('인근 지구대')
     assert '가상119안전센터' not in t, '경찰 목록에 소방 시설 섞임'
@@ -224,7 +224,6 @@ with sync_playwright() as p:
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-13 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bPol'); pg.wait_for_timeout(500)
     t = pg.inner_text('#polBody'); assert '대구·경북 외' in t and '가까운 경찰서' in t and '02-000-0112' in t and '민원실' not in t, t
-    assert '서울 112치안종합상황실' in t and '02-112' in t, t
     assert '☎ 182' not in t and pg.locator('#polBody a[href="tel:182"]').count() == 0 and pg.locator('#polBody a[href="https://place.map.kakao.com/60"]').count() == 1, t
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'police_out.png'), full_page=True)
     b.close()

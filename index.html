@@ -1830,25 +1830,11 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     if (/119|소방|안전센터|지역대|구급대|구조대/.test(n) || /소방/.test(c)) return false;
     return /(지구대|파출소)/.test(n);
   }
-  // 시도경찰청 112치안종합상황실 = 지역번호+112(소방 상황실과 같은 방식). 연결은 🔵 확인 필요
-  // 경찰 관할과 지역번호가 다른 곳: 군위군(지역번호 054, 2023.7. 대구 편입 → 대구경찰청), 경산시(지역번호 053, 경북경찰청)
-  function polCtrl(r1, r2) {
-    var c = FIRE.ctrl(r1, r2); if (!c) return null;
-    var note = '지역번호+112 방식, 실제 연결 확인 필요 🔵';
-    if (c.name === '대구' && r2 === '군위군') note = '군위군: 지역번호 054이나 대구경찰청 관할(2023.7. 편입). ' + note;
-    if (c.name === '경북' && r2 === '경산시') note = '경산시: 지역번호 053이나 경북경찰청 관할. ' + note;
-    if (c.name === '경기') note += '. 경기남부·북부경찰청 별도 🔵';
-    return { name: c.name, tel: c.tel.replace(/-119$/, '-112'), note: note };
-  }
-  function polCtrlHTML(c) {
-    return '<div class="unit ctrl"><div class="n">' + esc(c.name) + ' 112치안종합상황실 <span class="tag red">관할 상황실</span></div><div class="ph"><a class="btn tel" href="tel:' + digits(c.tel) + '">☎ ' + esc(c.tel) + '</a><span class="small">' + esc(c.note) + '</span></div></div>';
-  }
   function renderPolice() {
     var x = current, el = $('polBody'); if (!x) return;
-    var pBoth = ['대구', '경북'].map(function (k) { var c = FIRE.ctrlOf(k); return polCtrlHTML({ name: c[1], tel: c[2] + '-112', note: '지역번호+112 방식, 실제 연결 확인 필요 🔵' }); }).join('');
-    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112치안종합상황실: 사고지점 시도 기준(지역번호+112) 🔵<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 카카오에 182(경찰민원콜센터) 등 공통번호만 등록된 곳은 번호 대신 [카카오맵에서 번호 확인] 표시<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
+    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 카카오에 182(경찰민원콜센터) 등 공통번호만 등록된 곳은 번호 대신 [카카오맵에서 번호 확인] 표시<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
     if (!getKey() || !places || !loc) {
-      el.innerHTML = pBoth + '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
+      el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
     }
     if (polCache && polCache.html) { el.innerHTML = polCache.html; return; }
@@ -1856,7 +1842,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var my = runId;
     fireWhere().then(function (where) {
       if (my !== runId) return;
-      var res = POLICE.find(where), pc = polCtrl(where.r1, where.r2), h = pc ? polCtrlHTML(pc) : pBoth;
+      var res = POLICE.find(where), h = '';
       polCache = { where: where, res: res };
       var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
       if (!res.sido) {

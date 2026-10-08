@@ -81,4 +81,16 @@ P.UNITS.forEach(u => {
   const k = u.station + u.name; assert.ok(!seen[k], '중복 ' + k); seen[k] = 1;
   assert.ok(u.g, u.name + ' 시군구');
 });
+// 대구경찰청 지구대·파출소 번호(2026.4.30.)
+assert.ok(P.DGT.length >= 60, 'DGT ' + P.DGT.length);
+P.DGT.forEach(x => assert.ok(/^0\d{1,2}-\d{3,4}-\d{4}$/.test(x.tel), x.name + ' ' + x.tel));
+const anyDal = P.DGT.filter(x => x.station === '대구달서경찰서')[0];
+assert.ok(anyDal, '달서 자료');
+assert.strictEqual(P.telByPlace('대구달서경찰서 ' + anyDal.name, '대구 ' + anyDal.g + ' 1').tel, anyDal.tel);
+// 같은 이름 '중앙파출소'(중부·군위): 주소의 구·군으로 구분
+assert.strictEqual(P.telByPlace('중앙파출소', '대구 중구 동성로 1').station, '대구중부경찰서');
+assert.strictEqual(P.telByPlace('중앙파출소', '대구 군위군 군위읍 1').station, '대구군위경찰서');
+assert.strictEqual(P.telByPlace('중앙파출소', '경북 청도군 1'), null);
+assert.strictEqual(P.dgTel('대구군위경찰서', '효령파출소').tel, '054-380-0313');
+n += 6;
 console.log(n + '개 통과');

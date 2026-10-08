@@ -157,6 +157,14 @@ with sync_playwright() as p:
     pg.click('#bFire'); pg.wait_for_timeout(500)
     t = pg.inner_text('#fireBody'); assert '금천119안전센터' in t and '054-372-3119' in t and '정리표' in t, t
     pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    # 정리표에 없는 성주: 소방청 전국 자료 번호로 바로 전화
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'경상북도',region_2depth_name:'성주군',region_3depth_name:'성주읍',region_4depth_name:'성산리'},{region_type:'H',region_1depth_name:'경상북도',region_2depth_name:'성주군',region_3depth_name:'성주읍'}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-09 12:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bFire'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#fireBody'); assert '성주119안전센터' in t and '054-933-0119' in t and '소방청 119안전센터 현황' in t, t
+    assert pg.locator('#fireBody a[href="tel:0549330119"]').count() >= 1
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'fire_seongju.png'), full_page=True)
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
     pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bFire'); pg.wait_for_timeout(500)

@@ -91,4 +91,29 @@ assert.strictEqual(F.ctrl('전북특별자치도', '전주시').tel, '063-119');
 assert.strictEqual(F.ctrl('경상남도', '창원시').tel, '055-119');
 assert.strictEqual(F.ctrl('', ''), null);
 n += 13;
+
+// 소방청 전국 안전센터 표(2026.7.1.)
+assert.ok(F.NAT.length >= 1140, '전국 표 ' + F.NAT.length);
+F.NAT.forEach(x => assert.ok(/^0\d{1,2}-\d{3,4}-\d{4}$/.test(x.tel), x.ce + ' 번호 ' + x.tel));
+// 정리표에 없는 성주: 소방청 자료로 표시
+let ti = F.telInfo('경북', '성주소방서', '성주119안전센터');
+assert.strictEqual(ti.tel, '054-933-0119'); assert.strictEqual(ti.src, F.NAT_SRC);
+// 같은 이름(동부119안전센터): 소방서로 구분
+assert.strictEqual(F.nat('경북', '경주소방서', '동부119안전센터').st, '경주');
+assert.strictEqual(F.nat('경북', '영천소방서', '동부119안전센터').st, '영천');
+// 정리표가 있으면 정리표 우선, 소방청 번호가 다르면 메모
+ti = F.telInfo('대구', '대구수성소방서', '범물119안전센터');
+assert.strictEqual(ti.tel, '053-607-3822'); assert.ok(ti.note.includes('053-607-3820'), ti.note);
+ti = F.telInfo('경북', '경산소방서', '압량119안전센터');
+assert.strictEqual(ti.tel, '053-813-1119'); assert.ok(!ti.note.includes('소방청'), ti.note);
+// 지역대는 소방청 자료 없음
+assert.strictEqual(F.telInfo('경북', '성주소방서', '초전119지역대').tel, '');
+// 카카오 장소로 찾기: 소방서 이름 붙은 표기, 다른 시도 같은 이름 구분
+assert.strictEqual(F.placeInfo('성주소방서 성주119안전센터', '경북 성주군 성주읍 경산리 1').tel, '054-933-0119');
+assert.strictEqual(F.placeInfo('성주119안전센터', '경상북도 성주군 성주읍').tel, '054-933-0119');
+assert.strictEqual(F.placeInfo('개포119안전센터', '서울 강남구 개포동 1').tel, '02-6981-7593');
+assert.strictEqual(F.placeInfo('개포119안전센터', '부산 해운대구 우동 1'), null);
+assert.strictEqual(F.placeInfo('성주119지역대', '경북 성주군'), null);
+assert.strictEqual(F.sidoKey('전남광주통합특별시'), '전남광주'); assert.strictEqual(F.sidoKey('광주광역시'), '전남광주');
+n += 16;
 console.log(`${n}개 통과`);

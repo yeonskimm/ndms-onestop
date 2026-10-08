@@ -1,0 +1,2 @@
+ERR https://www.gbpolice.go.kr/gbpolice/info/policelist.do <urlopen error timed out>
+ERR https://www.gbpolice.go.kr/gbpolice/index.do <urlopen error timed out>

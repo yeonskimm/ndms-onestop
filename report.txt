@@ -1,0 +1,12 @@
+out:
+total 12
+drwxr-xr-x 3 runner runner 4096 Oct  8 14:11 .
+drwxr-xr-x 6 runner runner 4096 Oct  8 14:06 ..
+drwxr-xr-x 2 runner runner 4096 Oct  8 14:06 gb
+-rw-r--r-- 1 runner runner    0 Oct  8 14:11 report.txt
+
+out/gb:
+total 12
+drwxr-xr-x 2 runner runner 4096 Oct  8 14:06 .
+drwxr-xr-x 3 runner runner 4096 Oct  8 14:11 ..
+-rw-r--r-- 1 runner runner  160 Oct  8 14:11 _log.txt

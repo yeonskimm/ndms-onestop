@@ -37,7 +37,7 @@ window.kakao = { maps: (function () {
     if (q === '소방서') return cb([{ id: 's1', place_name: '가상중부소방서', phone: '', address_name: '서울 중구', distance: '800', place_url: 'https://place.map.kakao.com/51' },
       { id: 's2', place_name: '가상중부소방서 119구조대', phone: '02-000-9999', address_name: '서울 중구', distance: '850', place_url: '' },
       { id: 's3', place_name: '가상중부소방서', phone: '02-000-0119', address_name: '서울 중구', distance: '900', place_url: '' }], Status.OK);
-    if (q === '경찰서') return cb([{ id: 'c1', place_name: '가상남대문경찰서 민원실', phone: '02-000-1113', address_name: '서울 중구', distance: '500', place_url: '' },
+    if (q === '경찰서') return cb([{ id: 'c0', place_name: '가상동부경찰서', phone: '182', address_name: '서울 중구', distance: '300', place_url: 'https://place.map.kakao.com/60' }, { id: 'c1', place_name: '가상남대문경찰서 민원실', phone: '02-000-1113', address_name: '서울 중구', distance: '500', place_url: '' },
       { id: 'c2', place_name: '가상남대문경찰서', phone: '02-000-0112', address_name: '서울 중구', distance: '600', place_url: '' }], Status.OK);
     // 실제 카카오처럼 소방 시설이 섞여 나오는 경우(걸러져야 함)
     if (q === '지구대') return cb([{ id: 'p1', place_name: '청도경찰서 가상지구대', phone: '054-000-2112', address_name: '경북 청도군 가상면', distance: '3200', place_url: '' },

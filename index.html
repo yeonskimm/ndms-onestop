@@ -1706,7 +1706,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       var q = qs[i++];
       return kwSearch(q, { location: center, radius: 20000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
         var hits = r.filter(function (p) { return nm(p.place_name).indexOf(core) >= 0; });
-        var withTel = hits.filter(function (p) { return digits(p.phone); })[0];
+        var withTel = hits.filter(function (p) { return kphone(p); })[0];
         if (withTel) return withTel;
         if (!first && hits[0]) first = hits[0];
         return next();
@@ -1715,13 +1715,15 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     return next();
   }
   function digits(t) { return String(t || '').replace(/\D/g, ''); }
+  // 카카오 등록 번호 중 182(경찰민원콜센터)·112·119 같은 전국 공통 단축번호는 해당 기관 직통이 아니므로 없는 것으로 봄
+  function kphone(p) { return p && digits(p.phone).length >= 9 ? p.phone : ''; }
   // 같은 이름으로 여러 번 등록된 장소는 하나로 합치되 번호 있는 등록을 남김(거리순 유지)
   function dedupTel(list) {
     var out = [], at = {};
     list.forEach(function (p) {
       var k = nm(p.place_name);
       if (!(k in at)) { at[k] = out.length; out.push(p); }
-      else if (!digits(out[at[k]].phone) && digits(p.phone)) out[at[k]] = p;
+      else if (!kphone(out[at[k]]) && kphone(p)) out[at[k]] = p;
     });
     return out;
   }
@@ -1739,11 +1741,11 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   function telBtn(p, kn) {
     if (kn && kn.tel) {
       var dt = distTxt(p);
-      var other = p && p.phone && digits(p.phone) !== digits(kn.tel) ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
+      var other = kphone(p) && digits(p.phone) !== digits(kn.tel) ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
       return '<a class="btn tel" href="tel:' + digits(kn.tel) + '">☎ ' + esc(kn.tel) + '</a><span class="small">' + esc(kn.src || FIRE.KNOWN_SRC) + (dt ? ' / ' + dt : '') + (kn.note ? '<br>' + String(kn.note).split('\n').map(esc).join('<br>') : '') + other + '</span>';
     }
     if (!p) return '<span class="btn ghost" aria-disabled="true">카카오 지도 번호 미확인</span><span class="small">하단 \'직접 확인\'에서 검색</span>';
-    var tel = (p.phone || '').replace(/[^\d-]/g, ''), dt = distTxt(p);
+    var tel = kphone(p).replace(/[^\d-]/g, ''), dt = distTxt(p);
     if (tel) return '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a><span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + ' 🔵</span>';
     return noTelBtn(p) + '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '<br>검색 결과에 번호 없음. 지도 상세 화면에는 있을 수 있음</span>';
   }
@@ -1813,13 +1815,13 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   var PTYPE = { D: '지구대', P: '파출소', S: '치안센터' };
   function polTel(u, p) {
     var more = u.tels.slice(1), dt = p ? distTxt(p) : '';
-    var other = p && p.phone && u.tels.map(digits).indexOf(digits(p.phone)) < 0 ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
+    var other = kphone(p) && u.tels.map(digits).indexOf(digits(p.phone)) < 0 ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
     var dg = POLICE.dgTel(u.station, u.name), dgo = dg && u.tels.map(digits).indexOf(digits(dg.tel)) < 0 ? '<br>대구경찰청 자료(2026.4.30.) 번호: ' + esc(dg.tel) + ' 🔵' : '';
     return '<a class="btn tel" href="tel:' + digits(u.tel) + '">☎ ' + esc(u.tel) + '</a><span class="small">' + esc(POLICE.TEL_SRC) + (dt ? ' / ' + dt : '') + (more.length ? '<br>다른 번호: ' + esc(more.join(', ')) : '') + dgo + other + '</span>';
   }
   // 관할표에 없는 대구 지구대·파출소(서부·남부·달서·성서·달성 등): 대구경찰청 자료 번호
   function dgTelHTML(t, p) {
-    var dt = p ? distTxt(p) : '', other = p && p.phone && digits(p.phone) !== digits(t.tel) ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
+    var dt = p ? distTxt(p) : '', other = kphone(p) && digits(p.phone) !== digits(t.tel) ? '<br>카카오 등록 번호 상이: ' + esc(p.phone) : '';
     return '<a class="btn tel" href="tel:' + digits(t.tel) + '">☎ ' + esc(t.tel) + '</a><span class="small">' + esc(POLICE.DG_SRC) + (dt ? ' / ' + dt : '') + other + '</span>';
   }
   // 카카오 '지구대'·'파출소' 검색에 119안전센터·지역대 등 소방 시설이 섞여 나오므로 이름·분류로 거름
@@ -1828,11 +1830,25 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     if (/119|소방|안전센터|지역대|구급대|구조대/.test(n) || /소방/.test(c)) return false;
     return /(지구대|파출소)/.test(n);
   }
+  // 시도경찰청 112치안종합상황실 = 지역번호+112(소방 상황실과 같은 방식). 연결은 🔵 확인 필요
+  // 경찰 관할과 지역번호가 다른 곳: 군위군(지역번호 054, 2023.7. 대구 편입 → 대구경찰청), 경산시(지역번호 053, 경북경찰청)
+  function polCtrl(r1, r2) {
+    var c = FIRE.ctrl(r1, r2); if (!c) return null;
+    var note = '지역번호+112 방식, 실제 연결 확인 필요 🔵';
+    if (c.name === '대구' && r2 === '군위군') note = '군위군: 지역번호 054이나 대구경찰청 관할(2023.7. 편입). ' + note;
+    if (c.name === '경북' && r2 === '경산시') note = '경산시: 지역번호 053이나 경북경찰청 관할. ' + note;
+    if (c.name === '경기') note += '. 경기남부·북부경찰청 별도 🔵';
+    return { name: c.name, tel: c.tel.replace(/-119$/, '-112'), note: note };
+  }
+  function polCtrlHTML(c) {
+    return '<div class="unit ctrl"><div class="n">' + esc(c.name) + ' 112치안종합상황실 <span class="tag red">관할 상황실</span></div><div class="ph"><a class="btn tel" href="tel:' + digits(c.tel) + '">☎ ' + esc(c.tel) + '</a><span class="small">' + esc(c.note) + '</span></div></div>';
+  }
   function renderPolice() {
     var x = current, el = $('polBody'); if (!x) return;
-    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
+    var pBoth = ['대구', '경북'].map(function (k) { var c = FIRE.ctrlOf(k); return polCtrlHTML({ name: c[1], tel: c[2] + '-112', note: '지역번호+112 방식, 실제 연결 확인 필요 🔵' }); }).join('');
+    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112치안종합상황실: 사고지점 시도 기준(지역번호+112) 🔵<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 카카오에 182(경찰민원콜센터) 등 공통번호만 등록된 곳은 번호 대신 [카카오맵에서 번호 확인] 표시<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
     if (!getKey() || !places || !loc) {
-      el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
+      el.innerHTML = pBoth + '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
     }
     if (polCache && polCache.html) { el.innerHTML = polCache.html; return; }
@@ -1840,7 +1856,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var my = runId;
     fireWhere().then(function (where) {
       if (my !== runId) return;
-      var res = POLICE.find(where), h = '';
+      var res = POLICE.find(where), pc = polCtrl(where.r1, where.r2), h = pc ? polCtrlHTML(pc) : pBoth;
       polCache = { where: where, res: res };
       var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
       if (!res.sido) {

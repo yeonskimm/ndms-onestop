@@ -161,6 +161,12 @@ with sync_playwright() as p:
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-10 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bFire'); pg.wait_for_timeout(500)
     t = pg.inner_text('#fireBody'); assert '대구·경북 외' in t and '서울 119종합상황실' in t and '02-119' in t, t
+    # 가까운 소방서: 부속 시설 제외, 중복 등록은 번호 있는 쪽 / 인근 센터: 번호 없으면 카카오맵 상세 링크
+    assert '가까운 소방서' in t and '02-000-0119' in t and '119구조대' not in t, t
+    assert '054-000-9010' in t and pg.locator('#fireNear .unit .n', has_text='가상1119안전센터').count() == 1, t
+    assert pg.locator('#fireBody a[href="https://place.map.kakao.com/44"]').count() == 1
+    assert '카카오맵에서 번호 확인' in t, t
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'fire_out.png'), full_page=True)
     b.close()
     assert not errs2, errs2
 print('관할 소방 시험 통과')
@@ -203,6 +209,13 @@ with sync_playwright() as p:
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-12 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bPol'); pg.wait_for_timeout(500)
     t = pg.inner_text('#polBody'); assert '관할 자료 미확보' in t and '경산경찰서' in t, t
+    pg.go_back(); pg.wait_for_timeout(150); pg.go_back(); pg.wait_for_timeout(150)
+    # 대구·경북 밖 → 가까운 경찰서(민원실 등 부속 제외)
+    pg.evaluate("""window.__region=[{region_type:'B',region_1depth_name:'서울특별시',region_2depth_name:'중구',region_3depth_name:'명동',region_4depth_name:''}]""")
+    pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-13 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
+    pg.click('#bPol'); pg.wait_for_timeout(500)
+    t = pg.inner_text('#polBody'); assert '대구·경북 외' in t and '가까운 경찰서' in t and '02-000-0112' in t and '민원실' not in t, t
+    pg.screenshot(path=str(ROOT.parent / 'shots' / 'police_out.png'), full_page=True)
     b.close()
     assert not errs3, errs3
 print('관할 경찰 시험 통과')

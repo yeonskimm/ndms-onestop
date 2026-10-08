@@ -1583,6 +1583,10 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     else { if (loc && loc.jibun) qs.push({ q: loc.jibun, r: 300, label: '주소', addrOnly: true }); if (loc && loc.road) qs.push({ q: loc.road, r: 300, label: '도로명주소', addrOnly: true }); }
     return qs;
   }
+  // 카카오 검색 API는 지도 앱 상세 화면에 보이는 번호를 빈 값으로 주는 경우가 있음 → 상세 화면으로 연결
+  function noTelBtn(p) {
+    return p && p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">카카오맵에서 번호 확인 ›</a>' : '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>';
+  }
   var ML = { exact: ['green', '주소 일치'], road: ['green', '도로명 일치'], lot: ['blue', '같은 번지(본번)'] };
   function candHTML(p) {
     var d = Math.round(+p.distance || 0);
@@ -1590,8 +1594,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var tel = (p.phone || '').replace(/[^\d-]/g, '');
     return '<div class="cand"><div class="n">' + esc(p.place_name) + ' ' + (lv ? '<span class="tag ' + lv[0] + '">' + lv[1] + '</span>' : '<span class="tag">사고지점에서 약 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') + '</span>') + '</div>' +
       '<div class="ad">' + esc(p.address_name || '') + (p.road_address_name ? ' / ' + esc(p.road_address_name) : '') + (p.category_name ? '<br>' + esc(p.category_name) : '') + '</div>' +
-      '<div class="acts">' + (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' : '<span class="btn ghost" aria-disabled="true">전화번호 없음</span>') +
-      (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">상세</a>' : '') + '</div></div>';
+      '<div class="acts">' + (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' + (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">상세</a>' : '') : noTelBtn(p)) + '</div></div>';
   }
   function renderBiz() {
     var x = current; if (!x) return;
@@ -1639,18 +1642,42 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   function placeFor(name, station) {
     var center = new K.LatLng(loc.lat, loc.lng), core = nm(name).replace(/^대구(?=.+소방서$)/, '');
     var qs = station && station !== name ? [station + ' ' + name, name] : [name];
-    var i = 0;
+    var i = 0, first = null;
+    // 카카오에 같은 기관이 여러 번 등록된 경우가 있어, 번호 있는 등록을 찾을 때까지 검색어를 바꿔 봄
     function next() {
-      if (i >= qs.length) return Promise.resolve(null);
+      if (i >= qs.length) return Promise.resolve(first);
       var q = qs[i++];
       return kwSearch(q, { location: center, radius: 20000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
-        var hit = r.filter(function (p) { return nm(p.place_name).indexOf(core) >= 0; })[0];
-        return hit || next();
+        var hits = r.filter(function (p) { return nm(p.place_name).indexOf(core) >= 0; });
+        var withTel = hits.filter(function (p) { return digits(p.phone); })[0];
+        if (withTel) return withTel;
+        if (!first && hits[0]) first = hits[0];
+        return next();
       });
     }
     return next();
   }
   function digits(t) { return String(t || '').replace(/\D/g, ''); }
+  // 같은 이름으로 여러 번 등록된 장소는 하나로 합치되 번호 있는 등록을 남김(거리순 유지)
+  function dedupTel(list) {
+    var out = [], at = {};
+    list.forEach(function (p) {
+      var k = nm(p.place_name);
+      if (!(k in at)) { at[k] = out.length; out.push(p); }
+      else if (!digits(out[at[k]].phone) && digits(p.phone)) out[at[k]] = p;
+    });
+    return out;
+  }
+  // '가장 가까운 ○○'(관할표 없는 지역용): 이름이 kind로 끝나는 장소만
+  function nearestOf(kind, radius) {
+    var center = new K.LatLng(loc.lat, loc.lng), re = new RegExp(kind + '$');
+    return kwSearch(kind, { location: center, radius: radius || 20000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
+      return dedupTel(r.filter(function (p) { return re.test(String(p.place_name || '').trim()); })).sort(function (a, b) { return (+a.distance || 0) - (+b.distance || 0); });
+    });
+  }
+  function nearUnits(list, n) {
+    return list.length ? list.slice(0, n).map(function (p) { return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div>' + (p.road_address_name || p.address_name ? '<div class="st">' + esc(p.road_address_name || p.address_name) + '</div>' : '') + '<div class="ph">' + telBtn(p, null) + '</div></div>'; }).join('') : '<div class="empty">검색 결과 없음</div>';
+  }
   function distTxt(p) { var d = Math.round(+(p && p.distance) || 0); return d ? '사고지점에서 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') : ''; }
   function telBtn(p, kn) {
     if (kn && kn.tel) {
@@ -1660,8 +1687,8 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     }
     if (!p) return '<span class="btn ghost" aria-disabled="true">카카오 지도 번호 미확인</span><span class="small">하단 \'직접 확인\'에서 검색</span>';
     var tel = (p.phone || '').replace(/[^\d-]/g, ''), dt = distTxt(p);
-    return (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' : '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>') +
-      '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '</span>';
+    if (tel) return '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a><span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + ' 🔵</span>';
+    return noTelBtn(p) + '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '<br>검색 결과에 번호 없음. 지도 상세 화면에는 있을 수 있음</span>';
   }
   function unitHTML(id, title, tags, sub) {
     return '<div class="unit"><div class="n">' + esc(title) + ' ' + tags + '</div>' + (sub ? '<div class="st">' + esc(sub) + '</div>' : '') +
@@ -1674,7 +1701,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var x = current, el = $('fireBody'); if (!x) return;
     // 위치를 모를 때는 대구·경북 상황실 둘 다
     var ctrlBoth = ['대구', '경북'].map(function (k) { var c = FIRE.ctrlOf(k); return ctrlHTML({ name: c[1], tel: c[2] + '-119', note: '' }); }).join('');
-    var foot = '<div class="sec"><p class="small">※ 119종합상황실: 사고지점 시도 기준(지역번호+119)<br>※ 관할: 공식 관할표 기준이며, 실제 출동 센터는 관할과 다를 수 있음<br>※ 전화번호: 연락처 정리표 우선, 정리표에 없으면 카카오 지도 등록 번호 표시(🔵 확인 필요)<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
+    var foot = '<div class="sec"><p class="small">※ 119종합상황실: 사고지점 시도 기준(지역번호+119)<br>※ 관할: 공식 관할표 기준이며, 실제 출동 센터는 관할과 다를 수 있음<br>※ 전화번호: 연락처 정리표(대구청 관할) 우선, 없으면 카카오 지도 등록 번호(🔵 확인 필요). 검색 결과에 번호가 없으면 [카카오맵에서 번호 확인]으로 상세 화면 열기<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
     if (!getKey() || !places || !loc) {
       el.innerHTML = ctrlBoth + '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
@@ -1689,7 +1716,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       fireCache = { where: where, res: res };
       var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
       if (!res.sido) {
-        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 하단 인근 안전센터 참고</div>';
+        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 가까운 소방서·안전센터를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
       } else if (res.matches.length) {
         h += '<div class="note" style="margin-top:14px">' + esc(place) + ' 관할' + (res.boundary ? ' <span class="tag amber">경계 지역·확인 필요</span>' : '') + '</div>';
         res.matches.forEach(function (o) {
@@ -1707,6 +1734,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
         h += unitHTML(id, st, '<span class="tag">소방서</span>', '');
         jobs.push([id, st, null, FIRE.knownFull(st, '')]);
       });
+      if (!res.stations.length) h += '<div class="sec"><h2>가까운 소방서(거리순, 참고)</h2><div id="fireSt"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       h += '<div class="sec"><h2>인근 119안전센터(거리순, 참고)</h2><div id="fireNear"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       var q0 = res.matches[0] ? res.matches[0].u.name : (res.stations[0] || '119안전센터');
       h += '<div class="sec"><h2>직접 확인</h2><div class="chips"><a class="btn line" href="' + esc(naverWeb(q0)) + '" data-naver="' + esc(q0) + '">네이버지도: ' + esc(q0) + '</a></div></div>' + foot;
@@ -1716,7 +1744,10 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
         return placeFor(j[1], j[2]).then(function (p) { var b = $(j[0]); if (b && my === runId) b.innerHTML = telBtn(p, j[3]); });
       }).concat([kwSearch('119안전센터', { location: center, radius: 15000, sort: kakao.maps.services.SortBy.DISTANCE }).then(function (r) {
         var b = $('fireNear'); if (!b || my !== runId) return;
+        r = dedupTel(r);
         b.innerHTML = r.length ? r.slice(0, 3).map(function (p) { return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + telBtn(p, FIRE.knownByPlace(p.place_name, p.address_name || p.road_address_name)) + '</div></div>'; }).join('') : '<div class="empty">검색 결과 없음</div>';
+      })]).concat(res.stations.length ? [] : [nearestOf('소방서').then(function (r) {
+        var b = $('fireSt'); if (b && my === runId) b.innerHTML = nearUnits(r, 2);
       })])).then(function () { if (my === runId && fireCache) fireCache.html = $('fireBody').innerHTML; });
     });
   }
@@ -1736,7 +1767,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   }
   function renderPolice() {
     var x = current, el = $('polBody'); if (!x) return;
-    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도)</p></div>';
+    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
     if (!getKey() || !places || !loc) {
       el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
@@ -1750,7 +1781,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       polCache = { where: where, res: res };
       var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
       if (!res.sido) {
-        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 하단 인근 지구대·파출소 참고</div>';
+        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 가까운 경찰서·지구대·파출소를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
       } else if (res.matches.length) {
         h += '<div class="note" style="margin-top:14px">' + esc(place) + ' 관할' + (res.boundary ? ' <span class="tag amber">' + (res.matches.length > 1 ? '후보 ' + res.matches.length + '곳·' : '') + '확인 필요</span>' : '') + '</div>';
         res.matches.forEach(function (o) {
@@ -1758,20 +1789,24 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
           h += '<div class="unit"><div class="n">' + esc(o.u.name) + ' ' + tags + '</div><div class="st">' + esc(o.u.station + ' · ' + o.u.addr) + '</div><div class="ph">' + polTel(o.u) + '</div></div>';
         });
       } else if (!res.covered) {
-        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 수록 범위(대구청 관할) 밖이라 관할표 없음. 하단 인근 지구대·파출소 참고</div>';
+        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 수록 범위(대구청 관할) 밖이라 관할표 없음. 가까운 경찰서·지구대·파출소를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
       } else {
         h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 관할 자료 미확보 지역(' + esc(res.stations.join(', ')) + '). 하단 인근 지구대·파출소 참고 🔵</div>';
       }
+      var needSt = !res.matches.length;
+      if (needSt) h += '<div class="sec"><h2>가까운 경찰서(거리순, 참고)</h2><div id="polSt"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       h += '<div class="sec"><h2>인근 지구대·파출소(거리순, 참고)</h2><div id="polNear"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       var q0 = res.matches[0] ? res.matches[0].u.station + ' ' + res.matches[0].u.name : (res.stations[0] ? res.stations[0] + ' 지구대' : '지구대');
       h += '<div class="sec"><h2>직접 확인</h2><div class="chips"><a class="btn line" href="' + esc(naverWeb(q0)) + '" data-naver="' + esc(q0) + '">네이버지도: ' + esc(q0) + '</a></div></div>' + foot;
       el.innerHTML = h;
       var center = new K.LatLng(loc.lat, loc.lng), opt = { location: center, radius: 15000, sort: kakao.maps.services.SortBy.DISTANCE };
-      Promise.all([kwSearch('지구대', opt), kwSearch('파출소', opt)]).then(function (rs) {
+      var stJob = needSt ? nearestOf('경찰서').then(function (r) { var b = $('polSt'); if (b && my === runId) b.innerHTML = nearUnits(r, 2); }) : null;
+      Promise.all([kwSearch('지구대', opt), kwSearch('파출소', opt), stJob]).then(function (rs) {
         var b = $('polNear'); if (!b || my !== runId) return;
         var all = [], ids = {};
         rs[0].concat(rs[1]).forEach(function (p) { if (!ids[p.id] && isPolicePlace(p)) { ids[p.id] = 1; all.push(p); } });
         all.sort(function (a, c) { return (+a.distance || 0) - (+c.distance || 0); });
+        all = dedupTel(all);
         b.innerHTML = all.length ? all.slice(0, 3).map(function (p) {
           var u = POLICE.byPlace(p.place_name, p.address_name || p.road_address_name);
           return '<div class="unit"><div class="n">' + esc(p.place_name) + '</div><div class="ph">' + (u ? polTel(u, p) : telBtn(p, null)) + '</div></div>';
@@ -1784,7 +1819,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 
 
   // ── 설정 ──
-  var APP_UPDATED = '2026.10.07.';   // 배포할 때마다 날짜만 고침
+  var APP_UPDATED = '2026.10.08.';   // 배포할 때마다 날짜만 고침
   function openSettings() {
     var k = ownKey(), d = defaultKey();
     var state = k ? '<span class="tag blue">개인 키 사용 중</span>' : d ? '<span class="tag green">기본 키 사용 중</span> 별도 입력 불필요' : '<span class="tag amber">키 없음</span> 지도 사용 시 키 등록 필요';

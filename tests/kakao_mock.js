@@ -30,7 +30,15 @@ window.kakao = { maps: (function () {
   Places.prototype.keywordSearch = function (q, cb) { setTimeout(function () {
     if (/없는주소/.test(q)) return cb([], Status.ZERO_RESULT);
     if (/오류주소/.test(q)) return cb([], Status.ERROR);
-    if (q === '119안전센터') return cb([1, 2, 3].map(function (i) { return { id: 'n' + i, place_name: '가상' + i + '119안전센터', phone: '054-000-90' + i + '0', address_name: '경북 가상군', distance: String(i * 1500), place_url: '' }; }), Status.OK);
+    // 번호 없는 등록(상세 링크만 있음)과, 같은 이름의 번호 없는 중복 등록을 섞음
+    if (q === '119안전센터') return cb([{ id: 'n4', place_name: '가상4119안전센터', phone: '', address_name: '경북 가상군', distance: '1000', place_url: 'https://place.map.kakao.com/44' },
+      { id: 'n0', place_name: '가상1119안전센터', phone: '', address_name: '경북 가상군', distance: '1400', place_url: 'https://place.map.kakao.com/40' }].concat([1, 2, 3].map(function (i) { return { id: 'n' + i, place_name: '가상' + i + '119안전센터', phone: '054-000-90' + i + '0', address_name: '경북 가상군', distance: String(i * 1500), place_url: '' }; })), Status.OK);
+    // 관할표 없는 지역용 '가장 가까운 소방서·경찰서': 중복 등록, 부속 시설(걸러져야 함) 포함
+    if (q === '소방서') return cb([{ id: 's1', place_name: '가상중부소방서', phone: '', address_name: '서울 중구', distance: '800', place_url: 'https://place.map.kakao.com/51' },
+      { id: 's2', place_name: '가상중부소방서 119구조대', phone: '02-000-9999', address_name: '서울 중구', distance: '850', place_url: '' },
+      { id: 's3', place_name: '가상중부소방서', phone: '02-000-0119', address_name: '서울 중구', distance: '900', place_url: '' }], Status.OK);
+    if (q === '경찰서') return cb([{ id: 'c1', place_name: '가상남대문경찰서 민원실', phone: '02-000-1113', address_name: '서울 중구', distance: '500', place_url: '' },
+      { id: 'c2', place_name: '가상남대문경찰서', phone: '02-000-0112', address_name: '서울 중구', distance: '600', place_url: '' }], Status.OK);
     // 실제 카카오처럼 소방 시설이 섞여 나오는 경우(걸러져야 함)
     if (q === '지구대') return cb([{ id: 'p1', place_name: '청도경찰서 가상지구대', phone: '054-000-2112', address_name: '경북 청도군 가상면', distance: '3200', place_url: '' },
       { id: 'f9', place_name: '가상119안전센터', phone: '', address_name: '경북 청도군 가상면', distance: '1200', category_name: '사회,공공기관 > 행정기관 > 소방서 > 119안전센터', place_url: '' }], Status.OK);

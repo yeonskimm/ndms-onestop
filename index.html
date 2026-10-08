@@ -1846,7 +1846,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       polCache = { where: where, res: res };
       var place = (where.r2 + ' ' + (where.b || '') + (where.ri ? ' ' + where.ri : '')).trim() + (where.h && where.h !== where.b ? ' (행정동 ' + where.h + ')' : '');
       if (!res.sido) {
-        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 가까운 경찰서·지구대·파출소를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
+        h += '<div class="note" style="margin-top:14px"><b>대구·경북 외 지역</b>으로 관할표 없음. 가까운 지구대·파출소·경찰서를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
       } else if (res.matches.length) {
         h += '<div class="note" style="margin-top:14px">' + esc(place) + ' 관할' + (res.boundary ? ' <span class="tag amber">' + (res.matches.length > 1 ? '후보 ' + res.matches.length + '곳·' : '') + '확인 필요</span>' : '') + '</div>';
         res.matches.forEach(function (o) {
@@ -1854,13 +1854,13 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
           h += '<div class="unit"><div class="n">' + esc(o.u.name) + ' ' + tags + '</div><div class="st">' + esc(o.u.station + ' · ' + o.u.addr) + '</div><div class="ph">' + polTel(o.u) + '</div></div>';
         });
       } else if (!res.covered) {
-        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 관할표 수록 범위(대구청 본청 관할) 밖. 가까운 경찰서·지구대·파출소를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
+        h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 관할표 수록 범위(대구청 본청 관할) 밖. 가까운 지구대·파출소·경찰서를 거리순으로 표시(관할과 다를 수 있음 🔵)</div>';
       } else {
         h += '<div class="note warn" style="margin-top:14px"><b>' + esc(place) + '</b>: 관할 자료 미확보 지역(' + esc(res.stations.join(', ')) + '). 하단 인근 지구대·파출소 참고 🔵</div>';
       }
       var needSt = !res.matches.length;
-      if (needSt) h += '<div class="sec"><h2>가까운 경찰서(거리순, 참고)</h2><div id="polSt"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       h += '<div class="sec"><h2>인근 지구대·파출소(거리순, 참고)</h2><div id="polNear"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
+      if (needSt) h += '<div class="sec"><h2>가까운 경찰서(거리순, 참고)</h2><div id="polSt"><div class="empty"><span class="spin"></span>검색 중</div></div></div>';
       var q0 = res.matches[0] ? res.matches[0].u.station + ' ' + res.matches[0].u.name : (res.stations[0] ? res.stations[0] + ' 지구대' : '지구대');
       h += '<div class="sec"><h2>직접 확인</h2><div class="chips"><a class="btn line" href="' + esc(naverWeb(q0)) + '" data-naver="' + esc(q0) + '">네이버지도: ' + esc(q0) + '</a></div></div>' + foot;
       el.innerHTML = h;

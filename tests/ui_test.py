@@ -224,6 +224,7 @@ with sync_playwright() as p:
     pg.fill('#raw', A.replace('2026-01-05 10:20', '2026-01-13 11:00')); pg.click('#bGo'); pg.wait_for_timeout(500)
     pg.click('#bPol'); pg.wait_for_timeout(500)
     t = pg.inner_text('#polBody'); assert '대구·경북 외' in t and '가까운 경찰서' in t and '02-000-0112' in t and '민원실' not in t, t
+    assert t.index('인근 지구대·파출소(거리순') < t.index('가까운 경찰서(거리순'), '순서: 지구대·파출소 먼저'
     assert '☎ 182' not in t and pg.locator('#polBody a[href="tel:182"]').count() == 0 and pg.locator('#polBody a[href="https://place.map.kakao.com/60"]').count() == 1, t
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'police_out.png'), full_page=True)
     b.close()

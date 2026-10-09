@@ -162,6 +162,15 @@ input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);bor
 .cand .acts{display:flex;gap:8px;margin-top:9px}
 .cand .acts .btn{flex:1;min-height:46px;font-size:.9375rem;white-space:nowrap}
 .cand .acts .btn.tel,.cand .acts .btn.ghost{flex:2.2}
+/* 2026-10-09 번호 없음: 카카오맵·네이버지도 두 버튼 */
+.nonum{margin-top:9px;font-size:.8125rem;font-weight:700;color:var(--ink3)}
+.mapbtns{display:flex;gap:8px;margin-top:5px}
+.mapbtns .btn{flex:1;min-width:0;min-height:46px;padding:0 10px;font-size:.9375rem;white-space:nowrap}
+.unit .ph .mapbtns .btn{width:auto}
+.mi{flex:none;display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:5px;margin-right:-2px}
+.mi svg{width:14px;height:14px;fill:none;stroke-width:1.8;stroke-linejoin:round}
+.mi.kk{background:#FEE500}.mi.kk svg{stroke:#3A1D1D}
+.mi.nv{background:#03C75A}.mi.nv svg{stroke:#fff}
 .btn.tel{background:var(--near);color:#fff}
 .btn.tel:active{background:#166A3B}
 .empty{margin-top:10px;padding:12px;border-radius:10px;background:#F4F6F8;color:var(--ink2);font-size:.9375rem}
@@ -1640,9 +1649,19 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     else { if (loc && loc.jibun) qs.push({ q: loc.jibun, r: 300, label: '주소', addrOnly: true }); if (loc && loc.road) qs.push({ q: loc.road, r: 300, label: '도로명주소', addrOnly: true }); }
     return qs;
   }
-  // 카카오 검색 API는 지도 앱 상세 화면에 보이는 번호를 빈 값으로 주는 경우가 있음 → 상세 화면으로 연결
+  // 카카오 검색 API는 지도 앱 상세 화면에 보이는 번호를 빈 값으로 주는 경우가 있음 → '번호 없음' 표시 + 카카오맵 상세·네이버지도 검색으로 연결
+  // 네이버 검색어: 장소 이름 + 시군구(다른 지역 같은 이름 방지)
+  var PIN = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.5s4.5-4.2 4.5-7.8A4.5 4.5 0 0 0 3.5 6.7c0 3.6 4.5 7.8 4.5 7.8z"/><circle cx="8" cy="6.6" r="1.6"/></svg>';
+  function naverQ(p) {
+    var a = String(p.address_name || p.road_address_name || '').split(/\s+/), sgg = a[1] || '';
+    return (p.place_name || '') + (sgg && String(p.place_name || '').indexOf(sgg) < 0 ? ' ' + sgg : '');
+  }
   function noTelBtn(p) {
-    return p && p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">카카오맵에서 번호 확인 ›</a>' : '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>';
+    if (!p || !p.place_name) return '<span class="btn ghost" aria-disabled="true">등록된 번호 없음</span>';
+    var q = naverQ(p);
+    return '<div class="nonum">번호 없음 · 지도 앱에서 확인</div><div class="mapbtns">' +
+      (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '"><i class="mi kk">' + PIN + '</i>카카오맵 ›</a>' : '') +
+      '<a class="btn line" href="' + esc(naverWeb(q)) + '" data-naver="' + esc(q) + '"><i class="mi nv">' + PIN + '</i>네이버지도 ›</a></div>';
   }
   var ML = { exact: ['green', '주소 일치'], road: ['green', '도로명 일치'], lot: ['blue', '같은 번지(본번)'] };
   function candHTML(p) {
@@ -1651,7 +1670,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var tel = (p.phone || '').replace(/[^\d-]/g, '');
     return '<div class="cand"><div class="n">' + esc(p.place_name) + ' ' + (lv ? '<span class="tag ' + lv[0] + '">' + lv[1] + '</span>' : '<span class="tag">사고지점에서 약 ' + (d >= 1000 ? (d / 1000).toFixed(1) + 'km' : d + 'm') + '</span>') + '</div>' +
       '<div class="ad">' + esc(p.address_name || '') + (p.road_address_name ? ' / ' + esc(p.road_address_name) : '') + (p.category_name ? '<br>' + esc(p.category_name) : '') + '</div>' +
-      '<div class="acts">' + (tel ? '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' + (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">상세</a>' : '') : noTelBtn(p)) + '</div></div>';
+      (tel ? '<div class="acts"><a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a>' + (p.place_url ? '<a class="btn line" target="_blank" rel="noopener" href="' + esc(p.place_url) + '">상세</a>' : '') + '</div>' : noTelBtn(p)) + '</div>';
   }
   function renderBiz() {
     var x = current; if (!x) return;
@@ -1747,7 +1766,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     if (!p) return '<span class="btn ghost" aria-disabled="true">카카오 지도 번호 미확인</span><span class="small">하단 \'직접 확인\'에서 검색</span>';
     var tel = kphone(p).replace(/[^\d-]/g, ''), dt = distTxt(p);
     if (tel) return '<a class="btn tel" href="tel:' + tel + '">☎ ' + esc(p.phone) + '</a><span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + ' 🔵</span>';
-    return noTelBtn(p) + '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '<br>검색 결과에 번호 없음. 지도 상세 화면에는 있을 수 있음</span>';
+    return noTelBtn(p) + '<span class="small">카카오 등록: ' + esc(p.place_name) + (dt ? ' / ' + dt : '') + '</span>';
   }
   function unitHTML(id, title, tags, sub) {
     return '<div class="unit"><div class="n">' + esc(title) + ' ' + tags + '</div>' + (sub ? '<div class="st">' + esc(sub) + '</div>' : '') +
@@ -1760,7 +1779,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     var x = current, el = $('fireBody'); if (!x) return;
     // 위치를 모를 때는 대구·경북 상황실 둘 다
     var ctrlBoth = ['대구', '경북'].map(function (k) { var c = FIRE.ctrlOf(k); return ctrlHTML({ name: c[1], tel: c[2] + '-119', note: '' }); }).join('');
-    var foot = '<div class="sec"><p class="small">※ 119종합상황실: 사고지점 시도 기준(지역번호+119)<br>※ 관할: 공식 관할표 기준이며, 실제 출동 센터는 관할과 다를 수 있음<br>※ 전화번호: ① 연락처 정리표(대구청 관할) ② 소방청 119안전센터 현황(2026.7.1., 전국 안전센터) ③ 카카오 지도 등록 번호(🔵 확인 필요) 순. 지역대·출장소는 공식 자료가 없어 카카오 번호. 번호가 없으면 [카카오맵에서 번호 확인]으로 상세 화면 열기<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
+    var foot = '<div class="sec"><p class="small">※ 119종합상황실: 사고지점 시도 기준(지역번호+119)<br>※ 관할: 공식 관할표 기준이며, 실제 출동 센터는 관할과 다를 수 있음<br>※ 전화번호: ① 연락처 정리표(대구청 관할) ② 소방청 119안전센터 현황(2026.7.1., 전국 안전센터) ③ 카카오 지도 등록 번호(🔵 확인 필요) 순. 지역대·출장소는 공식 자료가 없어 카카오 번호. 번호가 없으면 [카카오맵]·[네이버지도]로 직접 확인<br>출처: 대구소방안전본부 관할구역 안내(2025.12.31), 경북 행정기구 설치 조례 시행규칙 별표2(2026.8.3)</p></div>';
     if (!getKey() || !places || !loc) {
       el.innerHTML = ctrlBoth + '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
@@ -1832,7 +1851,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   }
   function renderPolice() {
     var x = current, el = $('polBody'); if (!x) return;
-    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 카카오에 182(경찰민원콜센터) 등 공통번호만 등록된 곳은 번호 대신 [카카오맵에서 번호 확인] 표시<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
+    var foot = '<div class="sec"><p class="small">※ 관할: 대구경찰청 사전정보공표 지역경찰 운영(2025.12.), 청도·경산·영천경찰서 누리집 행정구역. 일부 파출소는 이름으로 추정(🔵)<br>※ 112 신고는 가까운 다른 지구대 순찰차가 먼저 출동할 수 있음<br>※ 카카오에 182(경찰민원콜센터) 등 공통번호만 등록된 곳은 번호 없음으로 보고 [카카오맵]·[네이버지도] 연결<br>※ 전화번호: 각 경찰서 누리집(2026.10.07. 확인), 그 밖의 대구 지구대·파출소는 대구경찰청 관서별 지역경찰 현황(2026.4.30.)<br>※ 수록: 대구청 관할 9개 경찰서(중부·동부·북부·강북·수성·군위·경산·영천·청도). 그 밖의 지역은 카카오 지도 등록 번호(🔵 확인 필요)</p></div>';
     if (!getKey() || !places || !loc) {
       el.innerHTML = '<div class="empty" style="margin-top:14px">' + (!getKey() ? '카카오 지도 키 미등록으로 관할 조회 불가' : '사고 위치 미확인으로 관할 조회 불가') + '</div>' + foot;
       return;
@@ -1885,7 +1904,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 
 
   // ── 설정 ──
-  var APP_UPDATED = '2026.10.08.';   // 배포할 때마다 날짜만 고침
+  var APP_UPDATED = '2026.10.09.';   // 배포할 때마다 날짜만 고침
   function openSettings() {
     var k = ownKey(), d = defaultKey();
     var state = k ? '<span class="tag blue">개인 키 사용 중</span>' : d ? '<span class="tag green">기본 키 사용 중</span> 별도 입력 불필요' : '<span class="tag amber">키 없음</span> 지도 사용 시 키 등록 필요';

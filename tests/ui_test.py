@@ -173,7 +173,8 @@ with sync_playwright() as p:
     assert '가까운 소방서' in t and '02-000-0119' in t and '119구조대' not in t, t
     assert '054-000-9010' in t and pg.locator('#fireNear .unit .n', has_text='가상1119안전센터').count() == 1, t
     assert pg.locator('#fireBody a[href="https://place.map.kakao.com/44"]').count() == 1
-    assert '카카오맵에서 번호 확인' in t, t
+    assert '번호 없음' in t and '네이버지도' in t, t
+    assert pg.locator('#fireBody [data-naver="가상4119안전센터 가상군"]').count() == 1   # 네이버 검색어 = 이름 + 시군구
     pg.screenshot(path=str(ROOT.parent / 'shots' / 'fire_out.png'), full_page=True)
     b.close()
     assert not errs2, errs2

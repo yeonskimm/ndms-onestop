@@ -12,6 +12,7 @@
 | `icon-*.png` | 앱 아이콘 |
 | `tests/` | 메시지 분석·캐시 삭제 범위·키 자리표시 시험(배포 때 자동 실행), 화면 흐름 시험(`python3 tests/ui_test.py`, 가짜 카카오 지도, 수동) |
 | `.github/workflows/deploy.yml` | 시험 후 배포, 배포 때 카카오 키 넣기 |
+| `tools/onestop-stats-worker.js` | 이용자 수 집계 서버(Cloudflare Worker) 보관본 — 배포에서 제외 |
 
 ## 처음 설정
 
@@ -80,6 +81,27 @@
 - 확인된 소방 번호(중부·수성·동부·북부 일부, 중부 상황실)는 카카오보다 먼저 표시. 고칠 곳: `index.html`의 `KNOWN`, `SITU`
 - 보고용 내용 복사(미확인 항목 🔵 표시, 관할 소방·경찰 포함)
 - 뒤로가기: 안드로이드 뒤로 버튼 = 앱 안 '‹ 뒤로', 첫 화면에서 '한 번 더 누르면 종료'. 아이폰은 앱 안 '‹ 뒤로'
+
+## 이용자 수 집계·관리자 화면(2026. 10. 12.)
+
+법ON과 같은 방식. 앱은 하루 한 번 단말기에서 만든 **무작위 번호**만 보내고, 서버는 그 번호·기기 종류(iOS/Android/PC)·이용 날짜만 저장(앱 설정 화면에 고지). 메시지 내용·주소·위치는 보내지 않음. 배포 주소(yeonskimm.github.io)에서 연 경우에만 보냄.
+
+- 관리자 화면: 첫 화면 **'현장바로' 로고를 3초 안에 5번** 누르기 → 비밀번호(워커의 `STATS_KEY`) 입력. 오늘 이용·신규, 누적 이용 기기·연인원, 최근 7일 막대, 30일 날짜별, 기기별
+- 법ON과 주소가 같아 법ON 워커를 같이 쓰면 숫자가 섞임 → **워커·D1을 따로** 둠(`onestop-stats`)
+
+### Cloudflare 설정(한 번)
+1. Cloudflare → Storage & Databases → D1 → **Create** → 이름 `onestop-stats`
+2. 만든 D1 → Console에서 아래 두 줄 실행
+   ```sql
+   CREATE TABLE users(uid TEXT PRIMARY KEY, first_day TEXT, device TEXT) WITHOUT ROWID;
+   CREATE TABLE visits(day TEXT, uid TEXT, device TEXT, PRIMARY KEY(day,uid)) WITHOUT ROWID;
+   ```
+3. Workers & Pages → **Create** → Worker → 이름 **`onestop-stats`**(주소가 `https://onestop-stats.darksky166.workers.dev`가 되어야 앱과 맞음) → Deploy → Edit code에 `tools/onestop-stats-worker.js` 전체 붙여넣기 → Deploy
+4. 워커 → Settings → **Bindings** → Add → D1 database → 변수 이름 `DB`, 데이터베이스 `onestop-stats`
+5. 워커 → Settings → **Variables and Secrets** → Add → 종류 Secret, 이름 `STATS_KEY`, 값 = 관리자 비밀번호(숫자, 법ON과 다르게 권장)
+6. 확인: `https://onestop-stats.darksky166.workers.dev/stats?key=<비밀번호>` 접속 → 표가 나오면 정상
+
+워커 주소가 다르면 `index.html`의 `STATS_URL`만 고침. 워커를 만들기 전에도 앱은 정상 동작(집계만 안 됨, 다음 날 다시 시도).
 
 ## 다음 단계(미구현)
 - 소방 상황실 등 업무용 번호(필요하면 앱 설정에서 입력, 코드에 넣지 않음)

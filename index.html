@@ -154,6 +154,26 @@ dl.kv dd{margin:0}
 .lbl{display:block;font-weight:700;margin:14px 0 6px}
 input.txt{width:100%;height:48px;padding:0 12px;border:1px solid var(--line);border-radius:10px;font-size:1rem;background:#fff}
 .small{font-size:.8125rem;color:var(--ink3)}
+/* 2026-10-12 관리자 화면(이용자 통계) — 법ON 관리자 모드와 같은 구성 */
+.adm-sum{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.adm-col{padding:10px 12px;border-radius:8px;background:#F4F6F8}
+.adm-col.on{background:var(--hdr);color:#fff}
+.adm-col>p{margin:0 0 4px;font-size:.8125rem;font-weight:700;color:var(--ink3)}
+.adm-col.on>p,.adm-col.on span,.adm-col.on i,.adm-col.on b{color:inherit}
+.adm-col>div{display:flex;align-items:baseline;gap:4px;min-height:34px}
+.adm-col span{flex:1;font-size:.875rem;color:var(--ink2);white-space:nowrap}
+.adm-col b{font-size:1.5rem;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums}
+.adm-col i{font-style:normal;font-size:.8125rem;color:var(--ink3)}
+.adm-from{margin:10px 0 0;text-align:center;font-size:.8125rem;color:var(--ink3)}
+.adm-bars{display:flex;align-items:flex-end;gap:6px;height:112px;padding-top:6px}
+.adm-bars div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px;font-size:.75rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.adm-bars i{display:block;width:100%;max-width:28px;min-height:2px;border-radius:4px 4px 0 0;background:#B9C2CC}
+.adm-bars div.on{color:var(--ink);font-weight:700}
+.adm-bars div.on i{background:var(--acc)}
+.adm-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:.9375rem;font-variant-numeric:tabular-nums}
+.adm-row small{margin-left:6px;font-size:.75rem;color:var(--ink3)}
+.adm details summary{padding:10px 0 2px;font-size:.875rem;font-weight:700;color:var(--ink2);cursor:pointer}
+.adm .msg{min-height:1.4em;margin:6px 0 0;font-size:.875rem;color:var(--acc)}
 
 /* 사업장 후보 */
 .cand{border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-top:10px}
@@ -342,6 +362,11 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   <div class="shcard"><div class="shh"><h2>설정</h2><button class="ib" data-back>닫기</button></div><div id="setBody"></div></div>
 </div>
 
+<!-- 관리자(이용자 통계): 첫 화면 '현장바로' 로고를 3초 안에 5번 누르면 열림 -->
+<div class="sheet adm" id="shAdm" hidden role="dialog" aria-label="관리자 · 이용자 통계">
+  <div class="shbg" data-back></div>
+  <div class="shcard"><div class="shh"><h2>관리자 · 이용자 통계</h2><button class="ib" data-back>닫기</button></div><div id="admBody"></div></div>
+</div>
 <div class="toast" id="toast" hidden role="status"></div>
 <div class="updbar" id="updbar" hidden><span>새 버전 배포됨</span><button id="bUpd">새로 열기</button></div>
 
@@ -1198,7 +1223,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   // 안드로이드: 기록을 쌓아 휴대폰 뒤로 버튼 = 앱 안 '‹ 뒤로'. 첫 화면에서는 '한 번 더 누르면 종료'
   // 아이폰: 기록을 쓰지 않음(스와이프 때 이전 화면 캡처가 비치는 문제) → 앱 안 '‹ 뒤로'로만 이동
   var HIST = !IOS && !!(window.history && history.pushState);
-  var layers = [];          // 열린 화면·창 순서: 'sList' | 'sDet' | 'shInfo' | 'shBiz' | 'shSet'
+  var layers = [];          // 열린 화면·창 순서: 'sList' | 'sDet' | 'shInfo' | 'shBiz' | 'shSet' | 'shAdm'
   var guardOn = false;
   function topLayer() { return layers[layers.length - 1] || null; }
   function isSheet(id) { return /^sh/.test(id); }
@@ -1214,7 +1239,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     $('foot').hidden = !!screen;
     $('hBack').hidden = screen !== 'sList';
     $('hTitle').textContent = screen === 'sList' ? '받은 사고 목록' : '현장바로';
-    ['shInfo', 'shBiz', 'shFire', 'shPol', 'shSet'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
+    ['shInfo', 'shBiz', 'shFire', 'shPol', 'shSet', 'shAdm'].forEach(function (id) { $(id).hidden = layers.indexOf(id) < 0; });
     document.body.style.overflow = (t && isSheet(t)) ? 'hidden' : '';
   }
   function open(id) {
@@ -1904,7 +1929,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
 
 
   // ── 설정 ──
-  var APP_UPDATED = '2026.10.09.';   // 배포할 때마다 날짜만 고침
+  var APP_UPDATED = '2026.10.12.';   // 배포할 때마다 날짜만 고침
   function openSettings() {
     var k = ownKey(), d = defaultKey();
     var state = k ? '<span class="tag blue">개인 키 사용 중</span>' : d ? '<span class="tag green">기본 키 사용 중</span> 별도 입력 불필요' : '<span class="tag amber">키 없음</span> 지도 사용 시 키 등록 필요';
@@ -1916,6 +1941,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
       '<div class="pre">' + esc(location.origin) + '</div>' +
       '<div class="chips"><button class="btn pri" id="kSave">저장</button>' + (k ? '<button class="btn ghost" id="kDel">' + (d ? '개인 키 지우기(기본 키로)' : '키 지우기') + '</button>' : '') + '</div>' +
       '<div class="sec"><h2>홈 화면 앱</h2>' + installInfo() + '</div>' +
+      '<div class="sec"><h2>이용 현황 집계</h2><p class="small" style="margin:0">하루 한 번, 단말기에서 만든 무작위 번호만 집계 서버로 전송(서버 저장: 그 번호·기기 종류·이용 날짜). 메시지 내용·주소·위치는 전송하지 않음</p></div>' +
       '<div class="sec"><p class="small">최종 업데이트 ' + APP_UPDATED + '<br>제작 연쓰</p></div>';
     open('shSet');
   }
@@ -1933,6 +1959,72 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
     else if (t.id === 'bInst2') doInstall();
   });
   function updKeyWarn() { $('keyWarn').hidden = !!getKey(); }
+
+  // ── 이용자 수 집계(2026-10-12, 법ON 방식) ──
+  // Cloudflare Worker + D1(저장소 tools/onestop-stats-worker.js). 하루 한 번 무작위 번호만 보냄
+  // 배포 주소에서만 보내고, 실패해도 앱 동작과 무관. 법ON과 같은 주소라 서버·저장 키를 따로 씀(숫자 섞임 방지)
+  var STATS_URL = 'https://onestop-stats.darksky166.workers.dev', STATS_FROM = '2026. 10. 12.';   // 집계 개시일(관리자 화면 표시)
+  function kstDay(off) { return new Date(Date.now() + 9 * 3600e3 - (off || 0) * 86400e3).toISOString().slice(0, 10); }
+  function newUid() {
+    if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+  }
+  function statsPing() {
+    try {
+      var today = kstDay();
+      if (location.hostname !== 'yeonskimm.github.io' || !window.fetch || lsGet('ping') === today) return;
+      var u = lsGet('uid') || '';
+      if (!/^[0-9a-f-]{32,40}$/i.test(u)) { u = newUid(); lsSet('uid', u); }
+      fetch(STATS_URL + '/ping', { method: 'POST', mode: 'cors', credentials: 'omit', keepalive: true, headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ uid: u }) })
+        .then(function (r) { if (r.ok) lsSet('ping', today); }, function () {});
+    } catch (e) {}
+  }
+  // 앱을 하루 넘게 켜 둔 채 다시 볼 때도 그날 한 번 집계
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') statsPing(); });
+
+  // ── 관리자 화면: 첫 화면 '현장바로' 로고를 3초 안에 5번 누르면 열림. 비밀번호 = 워커의 STATS_KEY(창을 닫을 때까지만 기억) ──
+  (function () {
+    var n = 0, t0 = 0, brand = document.querySelector('#sIn .brand'); if (!brand) return;
+    brand.addEventListener('click', function () { var now = Date.now(); if (now - t0 > 3000) n = 0; if (!n) t0 = now; n++; if (n >= 5) { n = 0; admOpen(); } });
+  })();
+  function ssGet(k) { try { return sessionStorage.getItem(LS + k) || ''; } catch (e) { return ''; } }
+  function ssSet(k, v) { try { if (v == null) sessionStorage.removeItem(LS + k); else sessionStorage.setItem(LS + k, v); } catch (e) {} }
+  function admOpen() { var k = ssGet('adm'); if (k) admLoad(k); else admLogin(''); open('shAdm'); $('shAdm').querySelector('.shcard').scrollTop = 0; }
+  function admFoot() { return '<p class="small" style="text-align:center;margin-top:18px">최종 업데이트 ' + APP_UPDATED + '</p>'; }
+  function admLogin(msg) {
+    $('admBody').innerHTML = '<label class="lbl" for="admKey">비밀번호</label>' +
+      '<input class="txt" id="admKey" type="password" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false">' +
+      '<p class="msg" id="admMsg">' + esc(msg || '') + '</p>' +
+      '<div class="chips"><button class="btn pri" id="admGo">확인</button></div>' + admFoot();
+  }
+  function admLoad(k) {
+    $('admBody').innerHTML = '<p class="small" style="margin-top:14px">불러오는 중…</p>';
+    fetch(STATS_URL + '/admin', { method: 'POST', mode: 'cors', credentials: 'omit', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ key: k }) })
+      .then(function (r) {
+        if (r.status === 403 || r.status === 429) { ssSet('adm', null); admLogin(r.status === 429 ? '시도 횟수 초과 · 10분 뒤 다시 시도' : '비밀번호 불일치'); return null; }
+        return r.ok ? r.json() : Promise.reject();
+      })
+      .then(function (d) { if (!d) return; ssSet('adm', k); admDraw(d); }, function () { admLogin('집계 서버 연결 실패 · 인터넷 연결 확인'); });
+  }
+  function admDraw(d) {   // d: {total, vt, days:[{day,n,nw}], dev:{iOS,Android,PC}}
+    var map = {}, L = [], i; (d.days || []).forEach(function (x) { map[x.day] = x; });
+    for (i = 0; i < 30; i++) { var k = kstDay(i), x = map[k] || {}; L.push({ day: k, n: x.n || 0, nw: x.nw || 0 }); }
+    var w7 = L.slice(0, 7).reverse(), mx = Math.max.apply(null, w7.map(function (x) { return x.n; }).concat([1]));
+    var cell = function (l, v, u) { return '<div><span>' + l + '</span><b>' + v + '</b><i>' + u + '</i></div>'; };
+    var dv = d.dev || {}, dvt = ['Android', 'iOS', 'PC'].filter(function (k) { return dv[k]; }).map(function (k) { return (k === 'iOS' ? '아이폰' : k === 'Android' ? '안드로이드' : 'PC') + ' ' + dv[k]; }).join(' · ');
+    var h = '<div class="adm-sum"><div class="adm-col on"><p>오늘</p>' + cell('이용', L[0].n, '명') + cell('신규', L[0].nw, '명') + '</div>' +
+      '<div class="adm-col"><p>누적</p>' + cell('이용 기기', d.total || 0, '대') + cell('연인원', typeof d.vt === 'number' ? d.vt : '–', '명') + '</div></div>' +
+      '<p class="adm-from">' + STATS_FROM + '부터 집계' + (dvt ? ' · ' + dvt : '') + '</p>';
+    h += '<div class="sec"><h2>최근 7일 이용자</h2><div class="adm-bars">' + w7.map(function (x, j) {
+      return '<div' + (j === 6 ? ' class="on"' : '') + '>' + x.n + '<i style="height:' + Math.round(x.n / mx * 64) + 'px"></i>' + x.day.slice(5).replace('-', '.') + '</div>'; }).join('') + '</div></div>';
+    var row = function (x, j) { return '<div class="adm-row"><span>' + x.day.slice(5).replace('-', '. ') + '.' + (j === 0 ? '<small>오늘</small>' : '') + '</span><span>' + x.n + '명' + (x.nw ? '<small>신규 ' + x.nw + '</small>' : '') + '</span></div>'; };
+    h += '<div class="sec"><h2>날짜별 이용자</h2>' + L.slice(0, 7).map(row).join('') +
+      '<details><summary>30일 전체 보기</summary>' + L.slice(7).map(function (x, j) { return row(x, j + 7); }).join('') + '</details></div>';
+    h += '<p class="small" style="margin-top:14px">이용자 = 그날 앱을 연 서로 다른 기기 수(하루 한 번 집계) · 신규 = 그날 처음 연 기기 · 연인원 = 날마다 이용자 합계 · 앱을 지우거나 방문 기록을 지운 기기는 새 기기로 셈</p>';
+    $('admBody').innerHTML = h + admFoot();
+  }
+  $('admBody').addEventListener('click', function (e) { if (e.target.id === 'admGo') { var v = $('admKey').value.trim(); if (v) admLoad(v); } });
+  $('admBody').addEventListener('keydown', function (e) { if (e.target.id === 'admKey' && e.key === 'Enter') { var v = e.target.value.trim(); if (v) admLoad(v); } });
 
   // ── 설치 안내(법ON·오늘의안전과 같게) ──
   // 안드로이드 Chrome·삼성 인터넷: 앱 안 [설치] 버튼 → 설치 창 / 아이폰: Safari 공유 → 홈 화면에 추가
@@ -1984,7 +2076,7 @@ html.atstart .hdr .ib:active{background:#EEF1F4}
   $('bUpd').addEventListener('click', function () { location.reload(); });
 
   // ── 시작: 공유(안드로이드)·단축어(아이폰)로 받은 글(?text=) 바로 분석 ──
-  paint(); updKeyWarn(); renderRecent(); renderInstall();
+  paint(); updKeyWarn(); renderRecent(); renderInstall(); statsPing();
   try {
     var sp = new URLSearchParams(location.search);
     var inText = [sp.get('title'), sp.get('text'), sp.get('t'), sp.get('url')].filter(Boolean).join('\n');
